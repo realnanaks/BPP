@@ -1,205 +1,226 @@
-# Product Requirements Document (PRD): Self-Service Promotion Creation Wizard
+# Product Requirements Document (PRD): Dynamic Eligibility & Qualification Engine
 
 ## 0. Executive Summary
 
 ### Purpose
-To empower CRM and Marketing teams to rapidly configure, simulate, and launch complex betting promotions without engineering application support. This PRD defines the **Promotion Creation Wizard**, a UI-driven workflow that abstracts the underlying Event-Driven Architecture into a user-friendly interface.
+To develop a generic, event-driven **Eligibility Engine** that allows business users to define precise qualification criteria for *any* type of promotion. This system abstracts complex real-time event processing (e.g., "Bet Settled", "Game Crashed", "Deposit Made") into a visual rule builder, decoupling marketing creativity from engineering cycles.
 
 ### Problem Statement
-Currently, launching a new promotion (e.g., "Acca Insurance" or "Aviator Crash Bonus") requires significant engineering time to implement hardcoded logic. This results in slow time-to-market, limited experimentation, and high operational costs. Stakeholders lack visibility into active rules and cannot independently adjust parameters like "Minimum Odds" or "Refund Caps".
+Currently, determining *who* qualifies for a promotion and *when* requires hardcoded logic (e.g., `if (bet.leg_count > 5)` written in Java/Go). This rigidity makes it impossible to launch novel campaigns (e.g., "Wager on Aviator AND Deposit via Mpesa caused X") without code deployments.
 
 ### Proposed Solution
-A **6-Step Self-Service Wizard** that allows authorized users to define:
-1.  **Scope**: Markets, Channels, and Audience Segments.
-2.  **Triggers**: Real-time events (e.g., `BetSettled`, `Deposit`) that qualify a user.
-3.  **Logic**: Complex boolean rules (e.g., `IF LosingSelections == 1 AND Stake > 50`).
-4.  **Rewards**: Dynamic outcomes (e.g., `Refund Stake as Cash` or `Grant Free Bet`).
-5.  **Schedule**: Automated start/end times and recurrence patterns.
+A **Visual Qualification Builder** (Wizard Step 2) where users can:
+1.  Select from a standardized **Event Catalog** (Sports, Casino, Wallet).
+2.  Chain multiple triggers using **Boolean Logic** (AND/OR).
+3.  Define nested conditions on specific event parameters (e.g., `Stake > 100`, `Outcome = Loss`).
 
 ### Scope
-*   **Included**: The frontend wizard, JSON schema generation for promotion definitions, basic validation (overlap checks, cap limits), and persistence of configurations.
-*   **Excluded**: The backend *execution* engine (Promotion Processor) and real-time wallet crediting (these are downstream consumers of the configuration).
+*   **Included**: Event Catalog definitions, Rule Builder UI, JSON Configuration Schema, Validation Logic.
+*   **Excluded**: The downstream Reward Execution (Payouts) or Notification systems.
 
-### Risks & Mitigations available
-*   **Risk**: Users creating financially dangerous promotions (e.g., infinite loops).
-*   **Mitigation**: Mandatory "Simulation" step and "Compliance Audit" flag for high-value rewards.
+### Risks & Mitigations
+*   **Risk**: Logic Loops (A trigger firing itself).
+*   **Mitigation**: Event-Type exclusions (e.g., A "Bonus Awarded" event cannot trigger a "Bonus" promotion).
 
-### Go-live Success Criteria
-*   Marketing team can configure and launch an "Acca Insurance" campaign in <10 minutes without writing SQL or code.
+### Success Criteria
+*   Support for cross-vertical qualification (e.g., Sports bet triggers Casino reward).
+*   Zero code required to configure a "Mix & Match" rule (e.g., "Bet on EPL OR Bet on NBA").
 
 ---
 
 ## 1. Context & Background
 
-### Current State
-*   Promotions are defined in backend code or complex SQL procedures.
-*   "Cashia" and "Acca Insurance" logic is tightly coupled to core betting systems.
-*   Changes to a variable (e.g., changing max refund from 1000 to 2000) require a deployment.
+### Context
+This module acts as the "Gatekeeper" of the Promotions Platform. It sits between the **Real-Time Event Stream** (Kafka/RabbitMQ) and the **Reward Engine**. Its sole job is to answer: *"Does this incoming event match the criteria for Promotion X?"*
 
-### Why Existing Systems Are Insufficient
-*   **Rigidity**: Cannot support new verticals (e.g., Aviator) without code changes.
-*   **Opacity**: No visual way to verify "Who is eligible?" or "What triggers this?".
-
-### Fit into Architecture
-This feature sits at the **Control Plane** level. It generates a **Promotion Definition Document (PDD)**—a JSON payload that dictates how the **Data Plane** (the Event Processor) evaluates transactions.
+### Architecture Support
+It provides the **Configuration Contract** (JSON) that the backend *Rule Evaluator* utilizes.
 
 ---
 
 ## 2. Goals & Non-Goals
 
 ### 2.1 Goals
-*   **flexibility**: Support 95% of standard betting mechanics (Deposit Match, Cashback, Turnover Challenge) via configuration.
-*   **Safety**: Prevent conflicting logic (e.g., two exclusive promos triggering on the same bet).
-*   **Usability**: "No-Code" interface for Boolean logic builder (AND/OR groups).
+*   **Universality**: The system must handle *any* payload structure defined in the Event Catalog (Flat, Nested, Arrays).
+*   **Granularity**: Users must be able to target specific fields (e.g., `is_live`, `currency`, `provider`).
+*   **Composability**: Support complex logic: `(Trigger A AND Condition X) OR (Trigger B AND Condition Y)`.
 
 ### 2.2 Non-Goals
-*   **Real-time Settlement**: This too defines *rules*, it does not execute them.
-*   **cms/Frontend Display**: This tool configures the *mechanic*, not the marketing banner/landing page HTML (though it defines where it *should* appear).
+*   **Reward Calculation**: This module determines *if* they qualify, not *what* they get.
+*   **Segment Creation**: It uses existing segments (e.g., "VIPs") but does not define how those segments are calculated.
 
 ---
 
 ## 3. Users & Stakeholders
 
-| User Type | Responsibilities | Needs | Must Not Do |
+| User Type | Responsibilities | Needs from Feature | Must Not Do |
 | :--- | :--- | :--- | :--- |
-| **CRM Manager** (Primary) | Designing and scheduling campaigns. | Intuitive logic builder, reusable templates. | Bypass financial caps set by Risk. |
-| **Compliance Officer** | Approving sensitive promotions. | Audit log of who changed what rule. | Edit active promotions without re-approval. |
-| **Risk Manager** | Setting exposure limits. | Global caps (e.g., "Max Budget 1M ETB"). | N/A |
-| **Engineer** | Maintaining the platform. | Clean JSON output, clear error states. | Be required for day-to-day config changes. |
+| **CRM User** | Configures campaign rules. | Clear Dropdowns, "English-like" rule summary. | Write SQL/Code. |
+| **Product Manager** | Defines new Event Types. | Easy way to add new events to the Catalog. | |
+| **Data Engineer** | Maps raw events to Catalog. | Strict typing (Float vs Integer) for reliability. | |
 
 ---
 
-## 4. High-Level User Journeys
+## 4. High-Level User Journeys & Diagrams
 
-### Business User Journey: Creating "Acca Insurance"
-1.  **Initiation**: User clicks "New Promotion" and selects "Cashback" template.
-2.  **Basic Setup**: Names the promo "Ethiopia Acca Insurance", selects Market "ET".
-3.  **Eligibility**:
-    *   Adds Trigger: `Sportsbook > Accumulator Settled`.
-    *   Adds Condition: `Losing Legs = 1`.
-    *   Adds Condition: `Total Legs >= 6`.
-4.  **Reward**:
-    *   Selects `Stake Refund`.
-    *   Sets Value `100%`.
-    *   Sets Cap `100,000 ETB`.
-5.  **Review**: Checks summary, sees "Draft" status.
-6.  **Publish**: Clicks "Publish". System saves config and sets status to "Active".
+### 4.1 Concept Diagram (UML)
 
-### Operational Journey: Emergency Stop
-1.  **Detection**: Risk Team detects abuse on "Aviator Rain".
-2.  **Action**: Admin navigates to Promotions List, finds specific ID.
-3.  **Deactivation**: Clicks "Deactivate" (Kill Switch).
-4.  **Result**: Promotion status updates to `Suspended`; Event Processor immediately stops matching this rule.
+```mermaid
+classDiagram
+    class Promotion {
+        +String id
+        +String name
+        +List~Trigger~ triggers
+    }
+    class Trigger {
+        +String eventType
+        +List~Condition~ rules
+    }
+    class Condition {
+        +String parameter
+        +String operator
+        +String value
+    }
+    class EventCatalog {
+        +List~EventDefinition~ events
+    }
 
----
+    Promotion "1" *-- "many" Trigger
+    Trigger "1" *-- "many" Condition
+    Trigger ..> EventCatalog : validates against
+```
 
-## 5. Functional Requirements
+### 4.2 Sequence Flow: Configuration
 
-### 5.1 Wizard Workflow
-*   **FR-01**: The system must provide a guided, multi-step navigation (Stepper) preventing advancement if current step data is invalid.
-*   **FR-02**: The system must verify unique Promotion IDs and non-overlapping names per market.
+```mermaid
+sequenceDiagram
+    participant User
+    participant UI_Wizard
+    participant Event_Catalog
+    participant Validator
 
-### 5.2 Trigger Configuration
-*   **FR-03**: The system must display a categorized catalog of events (Sports, Casino, Wallet).
-*   **FR-04**: The system must allow multiple triggers per promotion (OR logic) with nested conditions (AND logic).
-*   **FR-05**: The system must validate parameter types (e.g., preventing text input for 'Stake Amount').
-*   **FR-06**: The system must require strict Enum selection for finite fields (e.g., 'Outcome' must be Win/Loss/Void).
-
-### 5.3 Reward Logic
-*   **FR-07**: The system must support tiered rewards based on trigger parameters (e.g., "If Legs >= 10, Reward 200%").
-*   **FR-08**: The system must enforce a "Maximum Cap" field for all percentage-based rewards.
-
-### 5.4 persistence
-*   **FR-09**: The system must save drafts automatically to prevent data loss.
-*   **FR-10**: The system must generate a version-controlled JSON Configuration upon publishing.
-
----
-
-## 6. Non-Functional Requirements
-
-### Reliability & Determinism
-*   **NFR-01**: The generated JSON configuration must be deterministic; the same input event must always result in the same evaluation outcome.
-
-### Availability & Resilience
-*   **NFR-02**: The Creation Wizard must be available 99.9% of the time during business hours.
-*   **NFR-03**: UI must handle network failures gracefully during "Save" operations (retry logic).
-
-### Security & Access Control
-*   **NFR-04**: Only users with `PROMOTION_EDITOR` role can create/edit.
-*   **NFR-05**: Only users with `PROMOTION_PUBLISHER` role can change status to "Active".
-
-### Auditability
-*   **NFR-06**: Every field change in the wizard must be logged with `User_ID`, `Timestamp`, `Old_Value`, and `New_Value`.
+    User->>UI_Wizard: Select "Add Trigger"
+    UI_Wizard->>Event_Catalog: Fetch available Events (Sports, Casino, etc)
+    Event_Catalog-->>UI_Wizard: Return JSON Schema
+    User->>UI_Wizard: Choose "Aviator Bet Placed"
+    UI_Wizard->>User: Show available parameters (Stake, AutoCashout)
+    User->>UI_Wizard: Add Rule: "Stake > 50"
+    User->>UI_Wizard: Add Rule: "AutoCashout = True"
+    UI_Wizard->>Validator: Check Logical Consistency
+    Validator-->>UI_Wizard: Valid
+    UI_Wizard->>User: Show "Rule Added"
+```
 
 ---
 
-## 7. User Stories & Acceptance Criteria
+## 5. Functional Requirements (Event & Data Structure)
 
-| Scenario | User Story | Acceptance Criteria (Gherkin) | QA Validation Question |
+### 5.1 The Event Catalog Structure
+The system must support a strictly typed catalog. Below is the **Standard Event Definition** supported at launch:
+
+#### **A. Sportsbook Events**
+| Event ID | Label | Key Parameters |
+| :--- | :--- | :--- |
+| `bet_placement` | Prematch Bet | `Stake` (float), `Odds` (float), `Selections Count` (int), `Market`, `League` |
+| `bet_settled` | Bet Settlement | `Outcome` (Win/Loss/Void), `Profit`, `Payout` |
+| `acca_settled` | Accumulator | `Total Legs` (int), `Losing Legs` (int), `Min Odds per Leg` |
+
+#### **B. Aviator & Crash Games**
+| Event ID | Label | Key Parameters |
+| :--- | :--- | :--- |
+| `aviator_bet` | Bet Placed | `Stake`, `Auto Cashout Enabled` (bool), `Target Multiplier` |
+| `aviator_crash` | Round Loss | `Stake Lost`, `Crash Point` (float) |
+| `aviator_cashout` | Round Win | `Win Amount`, `Cashout Multiplier` |
+
+#### **C. Engagement & Wallet**
+| Event ID | Label | Key Parameters |
+| :--- | :--- | :--- |
+| `deposit` | Deposit | `Amount`, `Method` (Mpesa/Card), `Is First Deposit` (bool) |
+| `registration` | Sign Up | `Reg Method`, `Referral Code` |
+| `app_install` | App Install | `OS` (Android/iOS) |
+
+### 5.2 Rule Builder Mechanics
+*   **REQ-001 (Parameter Mapping)**: When a user selects an event (e.g., `bet_placement`), the UI must *only* show relevant parameters (`Stake`, `Odds`) in the condition dropdown.
+*   **REQ-002 (Type Safety)**:
+    *   `Boolean` fields (e.g., `Is Live`) must render as Yes/No dropdowns.
+    *   `Enum` fields (e.g., `Method`) must render as strict Select lists.
+    *   `Numeric` fields must block non-numeric input.
+
+---
+
+## 6. User Interface & High Fidelity Prototype
+
+### 6.1 UI Screen: The Eligibility Wizard
+*(Refer to High-Fidelity Prototype - Screen 2.0)*
+
+**Visual Components:**
+1.  **Left Panel (Scope)**:
+    *   **Markets**: Chip selector for `KE`, `ET`, `GH`, etc.
+    *   **Audiences**: Dropdown for segments (`VIP`, `New Users`, `All`).
+2.  **Right Panel (The Rule Engine)**:
+    *   **Trigger Cards**: Visual blocks representing each "OR" condition.
+    *   **Header**: "WHEN [Event Name]" (e.g., `WHEN Accumulator Settled`).
+    *   **Condition Rows**: "AND [Parameter] [Operator] [Value]" (e.g., `AND Losing Legs = 1`).
+    *   **Action Buttons**: Small icon buttons for `Add Condition (+)`, `Delete Rule (Trash)`.
+3.  **Modal Overlay**:
+    *   **Event Picker**: A grid of categories (Sports, Casino, etc.) to select the primary trigger.
+
+### 6.2 Prototype Interaction States
+*   **Empty State**: "No Triggers Configured. Click (+) to add an event."
+*   **Populated State**: List of rule cards connected by "OR" dividers.
+*   **Error State**: Red outline on input fields if validation fails (e.g., negative stake).
+
+---
+
+## 7. Data Models (JSON Schema)
+
+### 7.1 Configuration Payload
+This is the artifact generated by the wizard, stored in the DB, and read by the Backend Engine.
+
+```json
+{
+  "eligibility_config": {
+    "segments": ["VIP_TIER_1", "VIP_TIER_2"],
+    "markets": ["ET"],
+    "triggers": [
+      {
+        "id": "trigger_001",
+        "event_type": "acca_bet_settled",
+        "logic_gate": "AND",
+        "conditions": [
+          { "param": "total_legs", "operator": "gte", "value": 6 },
+          { "param": "losing_legs", "operator": "eq", "value": 1 },
+          { "param": "min_odds_per_leg", "operator": "gte", "value": 1.2 }
+        ]
+      },
+      {
+        "id": "trigger_002",
+        "event_type": "aviator_cashout",
+        "logic_gate": "AND",
+        "conditions": [
+          { "param": "multiplier", "operator": "gte", "value": 50.0 },
+          { "param": "stake", "operator": "gte", "value": 100 }
+        ]
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 8. Requirements Matrix
+
+| ID | Requirement | Priority | QA Validation |
 | :--- | :--- | :--- | :--- |
-| **Acca Insurance** | As a CRM Manager, I want to refund bets that lose by exactly one leg so that I can encourage larger accumulators. | **GIVEN** I am on the Eligibility Step<br>**WHEN** I select event 'Accumulator Settled'<br>**AND** I set 'Losing Legs' equal to 1<br>**THEN** The system validates the rule and allows saving. | Can I save a rule specifically for 'Losing Legs = 1'? (Yes/No) |
-| **Market Isolation** | As a Country Manager, I want to create a promo only for Ethiopia so false claims aren't made in Kenya. | **GIVEN** I am on the Scope Step<br>**WHEN** I select 'Ethiopia' from the Market list<br>**THEN** The generated config includes `"market": "ET"`<br>**AND** Users in 'KE' are excluded. | Does the config JSON explicitly state the target market? (Yes/No) |
-| **Event Catalog** | As a Product Owner, I want to see 'Aviator' events so I can target crash game players. | **GIVEN** I open the Trigger Application<br>**WHEN** I search for 'Aviator'<br>**THEN** I see 'Aviator Bet' and 'Aviator Crash' options. | Are Aviator events visible in the selector? (Yes/No) |
+| **EL-01** | System supports selecting multiple triggers (OR logic). | P0 | Can I add a Sports trigger AND a Casino trigger in one promo? |
+| **EL-02** | System enforces parameter data types. | P0 | Does the input block text for "Stake Amount"? |
+| **EL-03** | Condition operators adapt to types (e.g., no ">" for strings). | P1 | Do String fields only show "Equals/Contains"? |
+| **EL-04** | Draft state allows saving incomplete rules. | P2 | Can I save a rule with a blank value to finish later? |
 
 ---
 
-## 8. Edge Cases & Failure Scenarios
+## 9. Rollout & Compatibility
 
-*   **Edit Active Promotion**: User tries to change logic for a live promotion.
-    *   *System Behavior*: Must prevent critical logic edits. User must "Clone" and "Supersede" (Version 2).
-*   **Conflicting Rules**: Two promotions award "First Deposit Bonus".
-    *   *System Behavior*: "Priority" field determines execution order. System warns user of potential overlap.
-*   **Zero/Negative Values**: User enters "-50%" reward.
-    *   *System Behavior*: Input validation blocks negative numbers for rewards.
-
----
-
-## 9. Dependencies & Integrations
-
-*   **Upstream**:
-    *   **PAM (Player Account Management)**: Source of truth for Player Segments and Wallet Balance.
-    *   **Sportsbook Provider**: Source of `BetSettled` and `AccumulatorSettled` events.
-*   **Downstream**:
-    *   **Promotion Engine (Backend)**: Consumes the JSON config to evaluate rules.
-    *   **Wallet System**: Executes the payout command (Credit Transaction).
-
----
-
-## 10. Risks & Mitigations
-
-| Risk | Impact | Owner | Mitigation |
-| :--- | :--- | :--- | :--- |
-| **Financial Exposure** | Unlimited liability if caps aren't enforced. | Risk Team | Hard caps in code. "Budget Stop" feature that auto-pauses promo when budget hits 100%. |
-| **Complexity Overload** | Users creating rules too complex to debug. | Product | Limit nesting depth to 3 levels. Provide "Text Summary" of logic (e.g., "IF A and B"). |
-| **Performance Impact** | Too many active rules slowing down bet settlement. | Tech Lead | Limit "Active" promotions to 50 per market. Cache rule definitions. |
-
----
-
-## 11. Success Metrics & KPIs
-
-*   **Operational**:
-    *   Time-to-Configure: < 5 minutes for standard templates.
-    *   Error Rate: < 1% of published promotions requiring rollback.
-*   **Business**:
-    *   Adoption: % of total GGR driven by wizard-created promotions.
-    *   Campaign Frequency: Increase from 2/month to 5/week.
-
----
-
-## 12. Rollout, Experimentation & Backward Compatibility
-
-*   **Rollout Strategy**:
-    *   **Phase 1 (Alpha)**: Internal tech team use only (Production verification).
-    *   **Phase 2 (Beta)**: Ethiopia Marketing Team only (Single Market).
-    *   **Phase 3 (GA)**: Global rollout to all markets.
-*   **Backward Compatibility**:
-    *   Existing hardcoded promotions ("Legacy") will coexist with new Wizard promotions until migrated. New engine must support "Legacy Mock Wrappers" if strict migration isn't possible.
-
----
-
-## 13. Open Questions & TBDs
-
-| Topic | Question | Owner | Next Step |
-| :--- | :--- | :--- | :--- |
-| **Translations** | Do we need localized UI for French-speaking markets (DRC)? | Product | Verify roadmap for DRC expansion. |
-| **Approval Flow** | Is a "4-eyes" approval workflow required for MVP? | Compliance | Decision needed by [Date]. |
+*   **Versioning**: The Event Catalog must be versioned (`v1`, `v2`). Promotions lock to the catalog version active at creation time.
+*   **Deprecation**: If an event type (e.g., `Virtuals_Old`) is deprecated, existing promotions continue to run, but new ones cannot select it.
