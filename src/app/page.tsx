@@ -1,66 +1,394 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+import { ArrowUpRight, ArrowDownRight, Users, Ticket, Wallet, Activity, MoreHorizontal, Bell, Plus, Filter, Search } from 'lucide-react';
+import Link from 'next/link';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+import { useState, useEffect } from 'react';
 
-export default function Home() {
+const ACTIVITY_DATA = [
+  { name: 'Mon', claims: 4000, value: 2400 },
+  { name: 'Tue', claims: 3000, value: 1398 },
+  { name: 'Wed', claims: 2000, value: 9800 },
+  { name: 'Thu', claims: 2780, value: 3908 },
+  { name: 'Fri', claims: 1890, value: 4800 },
+  { name: 'Sat', claims: 2390, value: 3800 },
+  { name: 'Sun', claims: 3490, value: 4300 },
+];
+
+const CAMPAIGN_PERFORMANCE = [
+  { name: 'Welcome', value: 400, color: '#F2D641' },
+  { name: 'Retention', value: 300, color: '#a855f7' },
+  { name: 'VIP', value: 300, color: '#06b6d4' },
+  { name: 'Sports', value: 200, color: '#699951' },
+];
+
+export default function Dashboard() {
+  const [activePromotions, setActivePromotions] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Load promotions from local storage to simulate persistence
+    const saved = JSON.parse(localStorage.getItem('saved_promotions') || '[]');
+    // Mock data if empty
+    if (saved.length === 0) {
+      const mocks = [
+        { id: 101, name: 'Cashia Launch Cashback', type: 'Cashback', market: 'KE', status: 'Active', engagement: '12%', claims: 1450 },
+        { id: 102, name: 'Super League Welcome', type: 'Deposit Match', market: 'GH', status: 'Active', engagement: '24%', claims: 3890 },
+        { id: 103, name: 'Midweek Jackpot Boost', type: 'Bonus', market: 'All', status: 'Paused', engagement: '8%', claims: 560 },
+      ];
+      setActivePromotions(mocks);
+      localStorage.setItem('saved_promotions', JSON.stringify(mocks));
+    } else {
+      setActivePromotions(saved);
+    }
+  }, []);
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="dashboard-container">
+      {/* Header */}
+      <header className="dash-header">
+        <div>
+          <h1 className="dash-title">Command Center</h1>
+          <p className="dash-subtitle">Real-time platform overview and analytics.</p>
+        </div>
+        <div className="header-actions">
+          <div className="date-picker-placeholder">
+            <span>Today: Feb 2, 2026</span>
+          </div>
+          <Link href="/promotions/create" className="btn-primary-header">
+            <Plus size={16} /> New Promotion
+          </Link>
+        </div>
+      </header>
+
+      {/* KPI Grid */}
+      <div className="stats-grid">
+        <StatsCard
+          title="Active Claims"
+          value="12,845"
+          change="+12.5%"
+          trend="up"
+          icon={Ticket}
+          color="var(--color-betika-yellow)"
         />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+        <StatsCard
+          title="Liability Exposure"
+          value="€1.2M"
+          change="-2.4%"
+          trend="down"
+          icon={Wallet}
+          color="var(--color-accent-purple)"
+        />
+        <StatsCard
+          title="Active Players"
+          value="84,392"
+          change="+5.2%"
+          trend="up"
+          icon={Users}
+          color="var(--color-accent-cyan)"
+        />
+        <StatsCard
+          title="Conversion Rate"
+          value="24.8%"
+          change="-0.5%"
+          trend="down"
+          icon={Activity}
+          color="var(--color-betika-green)"
+        />
+      </div>
+
+      {/* Promotions List Section */}
+      <div className="glass-panel list-panel mb-8">
+        <div className="panel-header">
+          <div>
+            <h3 className="panel-title">Active Promotions</h3>
+            <p className="panel-subtitle">Manage your running campaigns</p>
+          </div>
+          <div className="list-actions">
+            <div className="search-bar">
+              <Search size={14} />
+              <input type="text" placeholder="Search..." />
+            </div>
+            <button className="icon-btn"><Filter size={16} /></button>
+          </div>
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="table-responsive">
+          <table className="promo-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Market</th>
+                <th>Status</th>
+                <th>Engagement</th>
+                <th>Claims</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {activePromotions.map((p) => (
+                <tr key={p.id}>
+                  <td>
+                    <div className="p-name">{p.name}</div>
+                    <div className="p-id">#{p.id}</div>
+                  </td>
+                  <td><span className="badge-type">{p.type}</span></td>
+                  <td><span className="market-tag">{p.market}</span></td>
+                  <td>
+                    <span className={`status-dot ${p.status.toLowerCase()}`}></span> {p.status}
+                  </td>
+                  <td>{p.engagement}</td>
+                  <td>{p.claims.toLocaleString()}</td>
+                  <td><button className="action-dots"><MoreHorizontal size={16} /></button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </main>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="main-grid">
+        {/* Main Chart */}
+        <div className="glass-panel chart-panel">
+          <div className="panel-header">
+            <div>
+              <h3 className="panel-title">Traffic & Claims Volume</h3>
+              <p className="panel-subtitle">Daily claim volume vs. value generated</p>
+            </div>
+            <div className="legend">
+              <span className="dot yellow" /> Claims
+              <span className="dot purple" /> Value
+            </div>
+          </div>
+          <div className="chart-wrapper">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={ACTIVITY_DATA} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorClaims" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#F2D641" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#F2D641" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="name" stroke="#666" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#666" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value / 1000}k`} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#09090b', border: '1px solid #333', borderRadius: '8px' }}
+                  itemStyle={{ fontSize: '12px' }}
+                />
+                <Area type="monotone" dataKey="claims" stroke="#F2D641" strokeWidth={2} fillOpacity={1} fill="url(#colorClaims)" />
+                <Area type="monotone" dataKey="value" stroke="#a855f7" strokeWidth={2} fillOpacity={1} fill="url(#colorValue)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Side Widgets */}
+        <div className="side-column">
+          {/* Campaign Performance Bar */}
+          <div className="glass-panel widget-panel">
+            <h3 className="panel-title mb-4">Top Campaigns</h3>
+            <div className="mini-chart-wrapper">
+              <ResponsiveContainer width="100%" height={150}>
+                <BarChart data={CAMPAIGN_PERFORMANCE} layout="vertical">
+                  <XAxis type="number" hide />
+                  <YAxis dataKey="name" type="category" stroke="#fff" fontSize={11} width={60} tickLine={false} axisLine={false} />
+                  <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ backgroundColor: '#09090b', border: 'none' }} />
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={16}>
+                    {CAMPAIGN_PERFORMANCE.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Live Feed */}
+          <div className="glass-panel widget-panel flex-1">
+            <div className="panel-header-row">
+              <h3 className="panel-title">Live Feed</h3>
+              <div className="live-indicator"><span className="pulse" /> Live</div>
+            </div>
+            <div className="feed-list">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="feed-item">
+                  <div className="feed-icon"><Bell size={12} /></div>
+                  <div className="feed-content">
+                    <p className="feed-msg">User <span className="text-white">JohnD</span> claimed <span className="text-yellow">Welcome Bonus</span></p>
+                    <span className="feed-time">2 mins ago</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style jsx>{`
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            color: #fff;
+        }
+
+        .dash-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 32px;
+        }
+        .header-actions { display: flex; gap: 16px; align-items: center; }
+        .btn-primary-header { 
+            background: var(--color-betika-yellow); 
+            color: #000; 
+            padding: 8px 16px; 
+            border-radius: 8px; 
+            font-size: 13px; font-weight: 700;
+            display: flex; align-items: center; gap: 8px;
+            text-decoration: none;
+        }
+
+        .dash-title { font-size: 28px; font-weight: 700; margin: 0; letter-spacing: -0.5px; }
+        .dash-subtitle { color: var(--color-text-secondary); margin: 4px 0 0 0; font-size: 14px; }
+        
+        .date-picker-placeholder {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--color-text-secondary);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            min-height: 400px;
+        }
+
+        .glass-panel {
+            background: rgba(22, 22, 34, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .mb-8 { margin-bottom: 32px; }
+
+        /* List Panel & Table */
+        .list-panel { min-height: 200px; }
+        .list-actions { display: flex; gap: 12px; }
+        
+        .search-bar { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 12px; display: flex; align-items: center; gap: 8px; width: 250px; }
+        .search-bar input { background: transparent; border: none; font-size: 13px; color: #fff; width: 100%; outline: none; }
+        .search-bar svg { color: #666; }
+        
+        .icon-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #aaa; cursor: pointer; }
+
+        .table-responsive { overflow-x: auto; }
+        .promo-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .promo-table th { text-align: left; padding: 12px 16px; color: #666; font-weight: 600; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .promo-table td { padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.03); color: #ddd; vertical-align: middle; }
+        .promo-table tr:last-child td { border-bottom: none; }
+
+        .p-name { font-weight: 600; color: #fff; margin-bottom: 2px; }
+        .p-id { font-size: 10px; color: #666; }
+        .badge-type { background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); font-size: 11px; }
+        .market-tag { background: rgba(6,182,212,0.1); color: #06b6d4; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        
+        .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; }
+        .status-dot.active { background: #22c55e; box-shadow: 0 0 5px #22c55e; }
+        .status-dot.paused { background: #facc15; }
+        .action-dots { background: transparent; border: none; color: #666; cursor: pointer; }
+
+        .chart-panel { height: 450px; }
+        .side-column { display: flex; flex-direction: column; gap: 24px; }
+        .widget-panel { flex: 1; min-height: 200px; }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+        .panel-title { font-size: 16px; font-weight: 600; margin: 0; }
+        .panel-subtitle { font-size: 12px; color: var(--color-text-secondary); margin: 4px 0 0 0; }
+        
+        .legend { display: flex; gap: 12px; font-size: 12px; color: var(--color-text-secondary); align-items: center; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+        .dot.yellow { background: #F2D641; }
+        .dot.purple { background: #a855f7; }
+
+        .chart-wrapper { flex: 1; width: 100%; min-height: 0; }
+        
+        /* Feed */
+        .panel-header-row { display: flex; justify-content: space-between; margin-bottom: 16px; align-items: center; }
+        .live-indicator { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #ef4444; font-weight: 700; text-transform: uppercase; }
+        .pulse { width: 6px; height: 6px; background: #ef4444; border-radius: 50%; box-shadow: 0 0 8px #ef4444; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        .feed-list { display: flex; flex-direction: column; gap: 16px; }
+        .feed-item { display: flex; gap: 12px; align-items: center; }
+        .feed-icon { 
+            width: 24px; height: 24px; 
+            background: rgba(255,255,255,0.05); 
+            border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center;
+            color: var(--color-text-muted);
+        }
+        .feed-content { flex: 1; font-size: 13px; color: var(--color-text-secondary); }
+        .feed-msg { margin: 0; line-height: 1.4; }
+        .text-white { color: #fff; font-weight: 500; }
+        .text-yellow { color: #F2D641; }
+        .feed-time { font-size: 11px; color: var(--color-text-muted); }
+
+        .mb-4 { margin-bottom: 16px; }
+        .flex-1 { flex: 1; }
+      `}</style>
     </div>
   );
+}
+
+function StatsCard({ title, value, change, trend, icon: Icon, color }: any) {
+  return (
+    <div className="glass-panel stats-card">
+      <div className="icon-row">
+        <div className="icon-box" style={{ color: color, background: color + '15' }}>
+          <Icon size={20} />
+        </div>
+        <div className="trend-badge" style={{ color: trend === 'up' ? 'var(--color-betika-green)' : '#ef4444' }}>
+          {trend === 'up' ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+          {change}
+        </div>
+      </div>
+      <div className="stat-value">{value}</div>
+      <div className="stat-title">{title}</div>
+
+      <style jsx>{`
+                .stats-card { padding: 20px; }
+                .icon-row { display: flex; justify-content: space-between; margin-bottom: 16px; }
+                .icon-box { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+                .trend-badge { display: flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 20px; }
+                .stat-value { font-size: 28px; font-weight: 700; color: #fff; line-height: 1; margin-bottom: 4px; letter-spacing: -1px; }
+                .stat-title { font-size: 13px; color: var(--color-text-secondary); }
+            `}</style>
+    </div>
+  )
 }
