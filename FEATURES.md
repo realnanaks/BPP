@@ -10,17 +10,9 @@ Currently, determining *who* qualifies for a promotion and *when* requires hardc
 
 ### Proposed Solution
 A **Visual Qualification Builder** (Wizard Step 2) where users can:
-1.  Select from a standardized **Event Catalog** (Sports, Casino, Wallet).
-2.  Chain multiple triggers using **Boolean Logic** (AND/OR).
-3.  Define nested conditions on specific event parameters (e.g., `Stake > 100`, `Outcome = Loss`).
-
-### Scope
-*   **Included**: Event Catalog definitions, Rule Builder UI, JSON Configuration Schema, Validation Logic.
-*   **Excluded**: The downstream Reward Execution (Payouts) or Notification systems.
-
-### Risks & Mitigations
-*   **Risk**: Logic Loops (A trigger firing itself).
-*   **Mitigation**: Event-Type exclusions (e.g., A "Bonus Awarded" event cannot trigger a "Bonus" promotion).
+1.  **Target**: Define scope via Markets, Channels, and Player Segments.
+2.  **Trigger**: Select from a categorized **Event Catalog** (Sports, Casino, Wallet).
+3.  **Qualify**: Chain multiple triggers and nested conditions using **Boolean Logic**.
 
 ### Success Criteria
 *   Support for cross-vertical qualification (e.g., Sports bet triggers Casino reward).
@@ -28,199 +20,139 @@ A **Visual Qualification Builder** (Wizard Step 2) where users can:
 
 ---
 
-## 1. Context & Background
+## 2. Architecture & Diagrams
 
-### Context
-This module acts as the "Gatekeeper" of the Promotions Platform. It sits between the **Real-Time Event Stream** (Kafka/RabbitMQ) and the **Reward Engine**. Its sole job is to answer: *"Does this incoming event match the criteria for Promotion X?"*
-
-### Architecture Support
-It provides the **Configuration Contract** (JSON) that the backend *Rule Evaluator* utilizes.
-
----
-
-## 2. Goals & Non-Goals
-
-### 2.1 Goals
-*   **Universality**: The system must handle *any* payload structure defined in the Event Catalog (Flat, Nested, Arrays).
-*   **Granularity**: Users must be able to target specific fields (e.g., `is_live`, `currency`, `provider`).
-*   **Composability**: Support complex logic: `(Trigger A AND Condition X) OR (Trigger B AND Condition Y)`.
-
-### 2.2 Non-Goals
-*   **Reward Calculation**: This module determines *if* they qualify, not *what* they get.
-*   **Segment Creation**: It uses existing segments (e.g., "VIPs") but does not define how those segments are calculated.
-
----
-
-## 3. Users & Stakeholders
-
-| User Type | Responsibilities | Needs from Feature | Must Not Do |
-| :--- | :--- | :--- | :--- |
-| **CRM User** | Configures campaign rules. | Clear Dropdowns, "English-like" rule summary. | Write SQL/Code. |
-| **Product Manager** | Defines new Event Types. | Easy way to add new events to the Catalog. | |
-| **Data Engineer** | Maps raw events to Catalog. | Strict typing (Float vs Integer) for reliability. | |
-
----
-
-## 4. High-Level User Journeys & Diagrams
-
-### 4.1 Concept Diagram (UML)
+### 2.1 Use Case Diagram (Actor Interactions)
 
 ```mermaid
-classDiagram
-    class Promotion {
-        +String id
-        +String name
-        +List~Trigger~ triggers
-    }
-    class Trigger {
-        +String eventType
-        +List~Condition~ rules
-    }
-    class Condition {
-        +String parameter
-        +String operator
-        +String value
-    }
-    class EventCatalog {
-        +List~EventDefinition~ events
+usecaseDiagram
+    actor "CRM Manager" as CRM
+    actor "Compliance Officer" as COMP
+    actor "Promotion Engine" as SYS
+
+    package "Eligibility Wizard" {
+        usecase "Define Target Audience" as UC1
+        usecase "Select Trigger Event" as UC2
+        usecase "Configure Logic Rules" as UC3
+        usecase "Simulate Eligibility" as UC4
     }
 
-    Promotion "1" *-- "many" Trigger
-    Trigger "1" *-- "many" Condition
-    Trigger ..> EventCatalog : validates against
+    CRM --> UC1
+    CRM --> UC2
+    CRM --> UC3
+    CRM --> UC4
+
+    UC1 ..> "Select Market (KE/ET)" : include
+    UC1 ..> "Select Channel (App/Web)" : include
+    UC1 ..> "Select Segment (VIP/New)" : include
+
+    UC3 ..> "Add Condition (AND)" : include
+    UC3 ..> "Add Group (OR)" : include
+
+    COMP --> UC4 : verifies
+    SYS --> UC3 : consumes configuration
 ```
 
-### 4.2 Sequence Flow: Configuration
+### 2.2 Sequence Diagram: End-to-End Configuration
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant UI_Wizard
+    participant UI_Scope
+    participant UI_Triggers
     participant Event_Catalog
     participant Validator
 
-    User->>UI_Wizard: Select "Add Trigger"
-    UI_Wizard->>Event_Catalog: Fetch available Events (Sports, Casino, etc)
-    Event_Catalog-->>UI_Wizard: Return JSON Schema
-    User->>UI_Wizard: Choose "Aviator Bet Placed"
-    UI_Wizard->>User: Show available parameters (Stake, AutoCashout)
-    User->>UI_Wizard: Add Rule: "Stake > 50"
-    User->>UI_Wizard: Add Rule: "AutoCashout = True"
-    UI_Wizard->>Validator: Check Logical Consistency
-    Validator-->>UI_Wizard: Valid
-    UI_Wizard->>User: Show "Rule Added"
+    User->>UI_Scope: 1. Select Markets (e.g., 'ET')
+    User->>UI_Scope: 2. Select Channels (e.g., 'Mobile', 'App')
+    User->>UI_Scope: 3. Select Segment (e.g., 'VIP_Tier_1')
+    
+    User->>UI_Triggers: 4. Click "Add Trigger"
+    UI_Triggers->>Event_Catalog: Fetch Events
+    User->>UI_Triggers: 5. Choose "Accumulator Settled"
+    
+    UI_Triggers->>User: Display Parameters (Legs, Odds)
+    User->>UI_Triggers: 6. Add Rule: "Losing Legs = 1"
+    User->>UI_Triggers: 7. Add Rule: "Total Legs > 5"
+    
+    UI_Triggers->>Validator: Validate Logic & Types
+    Validator-->>UI_Triggers: Valid Configuration
 ```
 
 ---
 
-## 5. Functional Requirements (Event & Data Structure)
+## 3. The Event Logic Data Table
 
-### 5.1 The Event Catalog Structure
-The system must support a strictly typed catalog. Below is the **Standard Event Definition** supported at launch:
+The system must support specific data types and operators for every parameter.
 
-#### **A. Sportsbook Events**
-| Event ID | Label | Key Parameters |
-| :--- | :--- | :--- |
-| `bet_placement` | Prematch Bet | `Stake` (float), `Odds` (float), `Selections Count` (int), `Market`, `League` |
-| `bet_settled` | Bet Settlement | `Outcome` (Win/Loss/Void), `Profit`, `Payout` |
-| `acca_settled` | Accumulator | `Total Legs` (int), `Losing Legs` (int), `Min Odds per Leg` |
-
-#### **B. Aviator & Crash Games**
-| Event ID | Label | Key Parameters |
-| :--- | :--- | :--- |
-| `aviator_bet` | Bet Placed | `Stake`, `Auto Cashout Enabled` (bool), `Target Multiplier` |
-| `aviator_crash` | Round Loss | `Stake Lost`, `Crash Point` (float) |
-| `aviator_cashout` | Round Win | `Win Amount`, `Cashout Multiplier` |
-
-#### **C. Engagement & Wallet**
-| Event ID | Label | Key Parameters |
-| :--- | :--- | :--- |
-| `deposit` | Deposit | `Amount`, `Method` (Mpesa/Card), `Is First Deposit` (bool) |
-| `registration` | Sign Up | `Reg Method`, `Referral Code` |
-| `app_install` | App Install | `OS` (Android/iOS) |
-
-### 5.2 Rule Builder Mechanics
-*   **REQ-001 (Parameter Mapping)**: When a user selects an event (e.g., `bet_placement`), the UI must *only* show relevant parameters (`Stake`, `Odds`) in the condition dropdown.
-*   **REQ-002 (Type Safety)**:
-    *   `Boolean` fields (e.g., `Is Live`) must render as Yes/No dropdowns.
-    *   `Enum` fields (e.g., `Method`) must render as strict Select lists.
-    *   `Numeric` fields must block non-numeric input.
+| Category | Event Name | Parameter | Data Type | Supported Operators | Sample Values |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Sports** | `bet_placement` | `Stake` | Float | `>`, `<`, `=`, `>=` | `50.00`, `100` |
+| | | `Sport` | Enum | `=`, `!=`, `IN` | `'Football'`, `'Tennis'` |
+| | | `Is Live` | Boolean | `=` | `True` (Yes), `False` (No) |
+| | `acca_settled` | `Total Legs` | Integer | `>`, `<`, `=` | `5`, `10` |
+| | | `Losing Legs` | Integer | `=` | `1` (One Cut) |
+| | | `Outcome` | Enum | `=` | `'Win'`, `'Loss'`, `'One-Cut'` |
+| **Aviator** | `aviator_bet` | `Auto Cashout` | Boolean | `=` | `True` |
+| | `aviator_crash` | `Crash Point` | Float | `<`, `>` | `1.20x`, `5.00x` |
+| **Wallet** | `deposit` | `Method` | Enum | `=`, `IN` | `'Mpesa'`, `'Card'`, `'Airtel'` |
+| | | `Is First Dep` | Boolean | `=` | `True` |
+| **User** | `login` | `Days Inactive`| Integer | `>` | `30`, `90` |
+| | `registration` | `Reg Method` | Enum | `=` | `'SMS'`, `'Web'` |
 
 ---
 
-## 6. User Interface & High Fidelity Prototype
+## 4. User Interface Specification
 
-### 6.1 UI Screen: The Eligibility Wizard
-*(Refer to High-Fidelity Prototype - Screen 2.0)*
+Based on the implemented design, the UI consists of a **Split-Screen Layout** to separate "Scope" from "Logic".
 
-**Visual Components:**
-1.  **Left Panel (Scope)**:
-    *   **Markets**: Chip selector for `KE`, `ET`, `GH`, etc.
-    *   **Audiences**: Dropdown for segments (`VIP`, `New Users`, `All`).
-2.  **Right Panel (The Rule Engine)**:
-    *   **Trigger Cards**: Visual blocks representing each "OR" condition.
-    *   **Header**: "WHEN [Event Name]" (e.g., `WHEN Accumulator Settled`).
-    *   **Condition Rows**: "AND [Parameter] [Operator] [Value]" (e.g., `AND Losing Legs = 1`).
-    *   **Action Buttons**: Small icon buttons for `Add Condition (+)`, `Delete Rule (Trash)`.
-3.  **Modal Overlay**:
-    *   **Event Picker**: A grid of categories (Sports, Casino, etc.) to select the primary trigger.
+### Screen 1: The Wrapper
+*   **Stepper**: A localized top navigation showing progress (Basics > **Eligibility** > Rewards > Schedule).
+*   **Header**: Contextual title ("Targeting & Triggers") with a "Draft Mode" badge.
 
-### 6.2 Prototype Interaction States
-*   **Empty State**: "No Triggers Configured. Click (+) to add an event."
-*   **Populated State**: List of rule cards connected by "OR" dividers.
-*   **Error State**: Red outline on input fields if validation fails (e.g., negative stake).
+### Screen 2: The Core Builder (Split Layout)
 
----
+#### **Left Panel: Scope & Target**
+*   **Purpose**: Define the "Who" and "Where".
+*   **Components**:
+    *   **Market Selector**: Multi-select chips. Selection filters available payment methods in the trigger engine (e.g., Selecting 'KE' shows 'Mpesa').
+    *   **Channel Toggles**: Buttons for `Web`, `App`, `SMS`, `USSD`. Used to include/exclude platforms.
+    *   **Segment Dropdown**: A robust select input pulling live segments (e.g., "Churned < 30 days").
 
-## 7. Data Models (JSON Schema)
-
-### 7.1 Configuration Payload
-This is the artifact generated by the wizard, stored in the DB, and read by the Backend Engine.
-
-```json
-{
-  "eligibility_config": {
-    "segments": ["VIP_TIER_1", "VIP_TIER_2"],
-    "markets": ["ET"],
-    "triggers": [
-      {
-        "id": "trigger_001",
-        "event_type": "acca_bet_settled",
-        "logic_gate": "AND",
-        "conditions": [
-          { "param": "total_legs", "operator": "gte", "value": 6 },
-          { "param": "losing_legs", "operator": "eq", "value": 1 },
-          { "param": "min_odds_per_leg", "operator": "gte", "value": 1.2 }
-        ]
-      },
-      {
-        "id": "trigger_002",
-        "event_type": "aviator_cashout",
-        "logic_gate": "AND",
-        "conditions": [
-          { "param": "multiplier", "operator": "gte", "value": 50.0 },
-          { "param": "stake", "operator": "gte", "value": 100 }
-        ]
-      }
-    ]
-  }
-}
-```
+#### **Right Panel: Qualification Rules**
+*   **Purpose**: Define the "What" and "When".
+*   **Components**:
+    *   **Trigger Card**: A container representing a single logical Group (AND logic inside).
+    *   **Event Badge**: Distinct color coding (Yellow for Sports, Cyan for Wallet) showing the Event Name (e.g., `WHEN: Deposit`).
+    *   **Condition Row**:
+        *   **Parameter**: Dropdown (e.g., "Amount").
+        *   **Operator**: Smart dropdown (e.g., ">=").
+        *   **Value**: Input field with type validation (Number only for amounts).
+    *   **Logical Connectors**: Visual "OR" dividers between Trigger Cards.
 
 ---
 
-## 8. Requirements Matrix
+## 5. High Fidelity Prototype Description
+*(See generated artifact for visual reference)*
 
-| ID | Requirement | Priority | QA Validation |
+**Visual Style:**
+*   **Theme**: Dark Mode (Financial/Terminal aesthetic).
+*   **Colors**: background `#0f111a`, accents `#06b6d4` (Cyan) and `#facc15` (Yellow).
+*   **Glassmorphism**: Panels use semi-transparent backgrounds with subtle borders (`1px solid rgba(255,255,255,0.1)`).
+
+**Key Interactions:**
+*   **Adding Triggers**: A large "Add Trigger" button opens a modal grid of Event Categories.
+*   **Deleting Rules**: Hovering a row follows a "Trash" icon for quick removal.
+*   **Navigation**: "Next Step" button stays fixed at the bottom right.
+
+---
+
+## 6. Functional Requirements Matrix
+
+| ID | Requirement | User Story | Priority |
 | :--- | :--- | :--- | :--- |
-| **EL-01** | System supports selecting multiple triggers (OR logic). | P0 | Can I add a Sports trigger AND a Casino trigger in one promo? |
-| **EL-02** | System enforces parameter data types. | P0 | Does the input block text for "Stake Amount"? |
-| **EL-03** | Condition operators adapt to types (e.g., no ">" for strings). | P1 | Do String fields only show "Equals/Contains"? |
-| **EL-04** | Draft state allows saving incomplete rules. | P2 | Can I save a rule with a blank value to finish later? |
-
----
-
-## 9. Rollout & Compatibility
-
-*   **Versioning**: The Event Catalog must be versioned (`v1`, `v2`). Promotions lock to the catalog version active at creation time.
-*   **Deprecation**: If an event type (e.g., `Virtuals_Old`) is deprecated, existing promotions continue to run, but new ones cannot select it.
+| **UI-01** | **Market Isolation** | As a user, I select "KE" so that rules only apply to Kenya. | P0 |
+| **UI-02** | **Channel Filtering** | As a user, I select "App Only" to drive app installs. | P1 |
+| **LG-01** | **Multi-Trigger** | As a user, I want "Bet on EPL" OR "Bet on La Liga" to count. | P0 |
+| **LG-02** | **Nested Logic** | As a user, I want "Bet > 100 AND Odds > 1.5" to be one rule. | P0 |
+| **DT-01** | **Enum Validation** | The system must list specific outcomes (Win/Loss) for consistency. | P0 |
