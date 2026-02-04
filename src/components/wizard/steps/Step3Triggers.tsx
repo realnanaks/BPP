@@ -129,46 +129,46 @@ export default function StepTriggers() {
                 .main-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; animation: slideIn 0.3s ease-out; }
                 @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
                 
-                .content-panel { min-height: 600px; padding: 0; overflow: hidden; }
-                .panel-header { padding: 24px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
-                .panel-title { margin: 0; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+                .content-panel { min-height: 600px; padding: 0; overflow: hidden; background: var(--color-bg-panel); border: 1px solid var(--color-border); border-radius: 12px; }
+                .panel-header { padding: 24px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; }
+                .panel-title { margin: 0; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 10px; color: var(--color-text-primary); }
                 .panel-body { padding: 32px; }
 
                 /* Rule Builder Canvas */
-                .rule-builder-canvas { display: flex; flex-direction: column; align-items: center; padding: 40px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1); }
-                .rule-node { background: #fff; color: #000; font-weight: 700; padding: 8px 16px; border-radius: 8px; font-size: 12px; }
-                .connector-line { width: 2px; height: 30px; background: rgba(255,255,255,0.1); }
+                .rule-builder-canvas { display: flex; flex-direction: column; align-items: center; padding: 40px; background: var(--color-bg-input); border-radius: 12px; border: 1px dashed var(--color-border); }
+                .rule-node { background: var(--color-text-primary); color: var(--color-bg-app); font-weight: 700; padding: 8px 16px; border-radius: 8px; font-size: 12px; }
+                .connector-line { width: 2px; height: 30px; background: var(--color-border); }
                 .rule-group { display: flex; flex-direction: column; gap: 16px; align-items: center; }
-                .rule-card { background: rgba(20, 20, 30, 0.8); border: 1px solid var(--color-accent-purple); border-radius: 8px; width: 300px; overflow: hidden; box-shadow: 0 0 15px rgba(168, 85, 247, 0.1); }
+                .rule-card { background: var(--color-bg-card); border: 1px solid var(--color-accent-purple); border-radius: 8px; width: 300px; overflow: hidden; box-shadow: 0 0 15px rgba(168, 85, 247, 0.1); }
                 .rule-header { background: rgba(168, 85, 247, 0.1); padding: 8px 16px; font-size: 12px; font-weight: 600; color: var(--color-accent-purple); display: flex; justify-content: space-between; }
-                .rule-content { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+                .rule-content { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--color-text-primary); }
                 .connector-badge { background: var(--color-betika-yellow); color: #000; font-size: 10px; font-weight: 800; padding: 4px 8px; border-radius: 4px; z-index: 2; }
                 .add-rule-btn { background: transparent; border: 1px dashed var(--color-text-secondary); color: var(--color-text-secondary); padding: 8px 16px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-top: 10px; }
-                .add-rule-btn:hover { border-color: #fff; color: #fff; }
+                .add-rule-btn:hover { border-color: var(--color-text-primary); color: var(--color-text-primary); }
 
                 /* Chips */
                 .form-group { margin-top: 32px; }
                 .form-label { display: block; margin-bottom: 12px; font-size: 14px; color: var(--color-text-secondary); }
-                .chip-input-container { display: flex; flex-wrap: wrap; gap: 8px; background: rgba(0,0,0,0.2); padding: 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; }
-                .chip { padding: 6px 12px; background: rgba(255,255,255,0.1); border-radius: 20px; font-size: 12px; color: #fff; cursor: pointer; }
+                .chip-input-container { display: flex; flex-wrap: wrap; gap: 8px; background: var(--color-bg-input); padding: 12px; border: 1px solid var(--color-border); border-radius: 8px; }
+                .chip { padding: 6px 12px; background: var(--color-bg-card); border-radius: 20px; font-size: 12px; color: var(--color-text-primary); cursor: pointer; }
                 .chip.purple { background: rgba(168, 85, 247, 0.2); color: var(--color-accent-purple); border: 1px solid rgba(168, 85, 247, 0.3); }
                 .chip.cyan { background: rgba(6, 182, 212, 0.2); color: var(--color-accent-cyan); border: 1px solid rgba(6, 182, 212, 0.3); }
-                .ghost-input { background: transparent; border: none; color: #fff; outline: none; font-size: 13px; flex: 1; min-width: 120px; }
+                .ghost-input { background: transparent; border: none; color: var(--color-text-primary); outline: none; font-size: 13px; flex: 1; min-width: 120px; }
 
                 /* Sidebar Items */
-                .sidebar-panel { padding: 20px; margin-bottom: 24px; }
+                .sidebar-panel { padding: 20px; margin-bottom: 24px; background: var(--color-bg-panel); border: 1px solid var(--color-border); border-radius: 12px; }
                 .sidebar-title { font-size: 14px; margin: 0 0 16px 0; font-weight: 600; color: var(--color-text-secondary); }
                 
                 .progress-wrapper { margin-bottom: 12px; }
-                .progress-bar-bg { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+                .progress-bar-bg { height: 8px; background: var(--color-bg-input); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
                 .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--color-accent-purple), var(--color-accent-cyan)); box-shadow: 0 0 10px var(--color-accent-cyan); }
-                .progress-labels { display: flex; justify-content: space-between; font-size: 11px; }
+                .progress-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-primary); }
 
                 .warning-box { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--color-betika-yellow); background: rgba(251, 191, 36, 0.1); padding: 10px; border-radius: 6px; }
 
-                .preview-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-                .preview-table th { text-align: left; color: var(--color-text-secondary); padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-                .preview-table td { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+                .preview-table { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--color-text-primary); }
+                .preview-table th { text-align: left; color: var(--color-text-secondary); padding-bottom: 8px; border-bottom: 1px solid var(--color-border); }
+                .preview-table td { padding: 10px 0; border-bottom: 1px solid var(--color-border); }
                 .text-right { text-align: right; }
 
                 .json-panel { background: #000; font-family: 'Fira Code', monospace; }

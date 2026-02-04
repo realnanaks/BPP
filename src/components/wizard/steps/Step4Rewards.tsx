@@ -1,62 +1,55 @@
 'use client';
 import { Gift, Coins, CreditCard, Ticket, Percent, DollarSign, ArrowRight, Plus, Trash2, Layers, Calendar, Users, AlertCircle, List } from 'lucide-react';
-import { useState } from 'react';
-
-interface TierRule {
-    id: number;
-    dimensionKey: string; // 'week' | 'selections' | 'stake'
-    dimensionValue: string;
-    segment: string;
-    percentage: string;
-    cap: string;
-}
+import { useWizardContext, TierRule } from '@/context/WizardContext';
 
 export default function StepRewards() {
-    const [rewardType, setRewardType] = useState('cashback');
-    const [calcType, setCalcType] = useState('tiered');
-    const [matrixDimension, setMatrixDimension] = useState('week'); // 'week' (Time) or 'selections' (Count)
+    const { state, updateRewards } = useWizardContext();
+    const { type: rewardType, calcType, matrixDimension, tiers, simpleConfig, wagering } = state.rewards;
 
-    // Mock initial state for Cashia (Time-based)
-    const [tiers, setTiers] = useState<TierRule[]>([
-        { id: 1, dimensionKey: 'week', dimensionValue: 'Week 1', segment: 'Low Value (50-200)', percentage: '30', cap: '60' },
-        { id: 2, dimensionKey: 'week', dimensionValue: 'Week 1', segment: 'Lower Mid', percentage: '30', cap: '100' },
-        { id: 3, dimensionKey: 'week', dimensionValue: 'Week 1', segment: 'Higher Mid', percentage: '30', cap: '200' },
-        { id: 4, dimensionKey: 'week', dimensionValue: 'Week 1', segment: 'High Value', percentage: '30', cap: '400' },
-        { id: 5, dimensionKey: 'week', dimensionValue: 'Week 2', segment: 'All Segments', percentage: '20', cap: 'Varies' },
-    ]);
+    const setRewardType = (val: string) => updateRewards({ type: val });
+    const setCalcType = (val: string) => updateRewards({ calcType: val });
+    const setMatrixDimension = (val: string) => updateRewards({ matrixDimension: val });
 
     const addTier = () => {
-        setTiers([...tiers, {
-            id: Date.now(),
-            dimensionKey: matrixDimension,
-            dimensionValue: matrixDimension === 'week' ? 'Week X' : '6 Selections',
-            segment: 'Any',
-            percentage: '0',
-            cap: '0'
-        }]);
+        updateRewards({
+            tiers: [...tiers, {
+                id: Date.now(),
+                dimensionKey: matrixDimension,
+                dimensionValue: matrixDimension === 'week' ? 'Week X' : '6 Selections',
+                segment: 'Any',
+                percentage: '0',
+                cap: '0'
+            }]
+        });
     };
 
     const removeTier = (id: number) => {
-        setTiers(tiers.filter(t => t.id !== id));
+        updateRewards({ tiers: tiers.filter(t => t.id !== id) });
     };
 
     const updateTier = (id: number, field: keyof TierRule, value: string) => {
-        setTiers(tiers.map(t => t.id === id ? { ...t, [field]: value } : t));
+        updateRewards({
+            tiers: tiers.map(t => t.id === id ? { ...t, [field]: value } : t)
+        });
     };
 
     // Helper to switch matrix type
     const toggleMatrixMode = (mode: string) => {
         setMatrixDimension(mode);
-        // Reset tiers for demo purposes when switching
+        // Reset tiers for demo purposes when switching (optional, maybe better not to wipe data in real app, but following original logic for now)
         if (mode === 'selections') {
-            setTiers([
-                { id: 1, dimensionKey: 'selections', dimensionValue: '6-7 Selections', segment: 'Any', percentage: '100', cap: 'Unlimited' },
-                { id: 2, dimensionKey: 'selections', dimensionValue: '8-9 Selections', segment: 'Any', percentage: '150', cap: 'Unlimited' }
-            ]);
+            updateRewards({
+                tiers: [
+                    { id: 1, dimensionKey: 'selections', dimensionValue: '6-7 Selections', segment: 'Any', percentage: '100', cap: 'Unlimited' },
+                    { id: 2, dimensionKey: 'selections', dimensionValue: '8-9 Selections', segment: 'Any', percentage: '150', cap: 'Unlimited' }
+                ]
+            });
         } else {
-            setTiers([
-                { id: 1, dimensionKey: 'week', dimensionValue: 'Week 1', segment: 'Low Value', percentage: '30', cap: '60' }
-            ]);
+            updateRewards({
+                tiers: [
+                    { id: 1, dimensionKey: 'week', dimensionValue: 'Week 1', segment: 'Low Value', percentage: '30', cap: '60' }
+                ]
+            });
         }
     };
 
@@ -69,32 +62,39 @@ export default function StepRewards() {
                 <div className="form-section">
                     <label className="section-label">Reward Type</label>
                     <div className="rewards-grid">
-                        <div className={`reward-card ${rewardType === 'cashback' ? 'active' : ''}`} onClick={() => setRewardType('cashback')}>
+                        <div className={`reward-card ${rewardType === 'freespins' ? 'active' : ''}`} onClick={() => setRewardType('freespins')}>
+                            <div className="r-icon yellow"><Ticket size={24} /></div>
+                            <div className="r-content">
+                                <h3>Freespins</h3>
+                                <p>Spins on specific slot games.</p>
+                            </div>
+                        </div>
+                        <div className={`reward-card ${rewardType === 'freebets' ? 'active' : ''}`} onClick={() => setRewardType('freebets')}>
+                            <div className="r-icon blue"><Ticket size={24} /></div>
+                            <div className="r-content">
+                                <h3>Freebets</h3>
+                                <p>Free bet tokens for sports.</p>
+                            </div>
+                        </div>
+                        <div className={`reward-card ${rewardType === 'freerounds' ? 'active' : ''}`} onClick={() => setRewardType('freerounds')}>
+                            <div className="r-icon purple"><Coins size={24} /></div>
+                            <div className="r-content">
+                                <h3>Freerounds</h3>
+                                <p>Rounds for crash games.</p>
+                            </div>
+                        </div>
+                        <div className={`reward-card ${rewardType === 'cash' ? 'active' : ''}`} onClick={() => setRewardType('cash')}>
                             <div className="r-icon green"><DollarSign size={24} /></div>
                             <div className="r-content">
-                                <h3>Cashback</h3>
-                                <p>Percentage back on losses/deposits.</p>
+                                <h3>Cash</h3>
+                                <p>Real withdrawable cash.</p>
                             </div>
                         </div>
                         <div className={`reward-card ${rewardType === 'bonus' ? 'active' : ''}`} onClick={() => setRewardType('bonus')}>
                             <div className="r-icon purple"><Gift size={24} /></div>
                             <div className="r-content">
-                                <h3>Bonus Wallet</h3>
-                                <p>Standard bonus funds with wagering.</p>
-                            </div>
-                        </div>
-                        <div className={`reward-card ${rewardType === 'spins' ? 'active' : ''}`} onClick={() => setRewardType('spins')}>
-                            <div className="r-icon yellow"><Ticket size={24} /></div>
-                            <div className="r-content">
-                                <h3>Free Spins</h3>
-                                <p>Spins on specific slot games.</p>
-                            </div>
-                        </div>
-                        <div className={`reward-card ${rewardType === 'physical' ? 'active' : ''}`} onClick={() => setRewardType('physical')}>
-                            <div className="r-icon blue"><Gift size={24} /></div>
-                            <div className="r-content">
-                                <h3>Physical Item</h3>
-                                <p>Merch, electronics, or tickets.</p>
+                                <h3>Bonus</h3>
+                                <p>Bonus funds with wagering.</p>
                             </div>
                         </div>
                     </div>
@@ -119,7 +119,7 @@ export default function StepRewards() {
                             <div className="input-col">
                                 <label>Match Percentage</label>
                                 <div className="big-input-wrapper">
-                                    <input type="number" defaultValue="100" className="big-input" />
+                                    <input type="number" defaultValue="100" className="big-input" onChange={(e) => updateRewards({ simpleConfig: { ...simpleConfig, percentage: e.target.value } })} />
                                     <span className="suffix">%</span>
                                 </div>
                             </div>
@@ -130,7 +130,7 @@ export default function StepRewards() {
                                 <label>Max Amount Cap</label>
                                 <div className="big-input-wrapper">
                                     <span className="prefix">KES</span>
-                                    <input type="number" defaultValue="500" className="big-input" />
+                                    <input type="number" defaultValue="500" className="big-input" onChange={(e) => updateRewards({ simpleConfig: { ...simpleConfig, cap: e.target.value } })} />
                                 </div>
                             </div>
                         </div>
@@ -224,10 +224,10 @@ export default function StepRewards() {
                     <div className="form-section mt-8">
                         <label className="section-label">Wagering Requirements</label>
                         <div className="wagering-control">
-                            <span className="multiplier">x35</span>
-                            <input type="range" min="0" max="100" defaultValue="35" className="range-slider" />
+                            <span className="multiplier">x{wagering}</span>
+                            <input type="range" min="0" max="100" defaultValue={wagering} onChange={(e) => updateRewards({ wagering: parseInt(e.target.value) })} className="range-slider" />
                         </div>
-                        <p className="hint-text">Player must wager bonus amount <strong>35 times</strong> before withdrawing.</p>
+                        <p className="hint-text">Player must wager bonus amount <strong>{wagering} times</strong> before withdrawing.</p>
                     </div>
                 )}
 
@@ -257,15 +257,15 @@ export default function StepRewards() {
                 .step-container { max-width: 900px; margin: 0 auto; animation: slideIn 0.3s ease-out; }
                 @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-                .form-panel { padding: 40px; background: #0f111a; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; }
-                .panel-title { font-size: 20px; margin-bottom: 32px; font-weight: 700; color: #fff; }
-                .section-label { display: block; font-size: 14px; font-weight: 600; color: #888; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
+                .form-panel { padding: 40px; background: var(--color-bg-panel); border: 1px solid var(--color-border); border-radius: 12px; }
+                .panel-title { font-size: 20px; margin-bottom: 32px; font-weight: 700; color: var(--color-text-primary); }
+                .section-label { display: block; font-size: 14px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
 
                 /* Reward Grid */
-                .rewards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; }
+                .rewards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
                 .reward-card {
-                    background: rgba(255,255,255,0.03);
-                    border: 1px solid rgba(255,255,255,0.1);
+                    background: var(--color-bg-card);
+                    border: 1px solid var(--color-border);
                     border-radius: 12px;
                     padding: 20px;
                     display: flex;
@@ -274,77 +274,77 @@ export default function StepRewards() {
                     cursor: pointer;
                     transition: all 0.2s;
                 }
-                .reward-card:hover { background: rgba(255,255,255,0.06); }
+                .reward-card:hover { background: var(--color-bg-input-focus); }
                 .reward-card.active {
                     background: rgba(6, 182, 212, 0.1);
-                    border-color: #06b6d4;
+                    border-color: var(--color-accent-cyan);
                 }
                 
-                .r-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); color: #fff; }
+                .r-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: var(--color-bg-input); color: var(--color-text-primary); }
                 .r-icon.purple { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
                 .r-icon.green { background: rgba(105, 153, 81, 0.2); color: #22c55e; }
                 .r-icon.yellow { background: rgba(242, 214, 65, 0.2); color: #facc15; }
                 .r-icon.blue { background: rgba(6, 182, 212, 0.2); color: #06b6d4; }
 
-                .r-content h3 { margin: 0 0 4px 0; font-size: 15px; color: #fff; }
-                .r-content p { margin: 0; font-size: 12px; color: #666; }
+                .r-content h3 { margin: 0 0 4px 0; font-size: 15px; color: var(--color-text-primary); }
+                .r-content p { margin: 0; font-size: 12px; color: var(--color-text-muted); }
 
                 /* Config Box */
-                .config-box { background: rgba(0,0,0,0.3); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); padding: 24px; }
+                .config-box { background: var(--color-bg-input); border-radius: 12px; border: 1px solid var(--color-border); padding: 24px; }
                 .config-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-                .sub-title { margin: 0; font-size: 14px; font-weight: 600; color: #fff; }
+                .sub-title { margin: 0; font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
 
-                .toggle-group { display: flex; background: rgba(255,255,255,0.05); padding: 4px; border-radius: 8px; }
-                .toggle-btn { background: transparent; border: none; color: #888; padding: 6px 12px; font-size: 12px; font-weight: 500; cursor: pointer; border-radius: 6px; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
-                .toggle-btn.active { background: #333; color: #fff; }
+                .toggle-group { display: flex; background: var(--color-bg-card); padding: 4px; border-radius: 8px; }
+                .toggle-btn { background: transparent; border: none; color: var(--color-text-muted); padding: 6px 12px; font-size: 12px; font-weight: 500; cursor: pointer; border-radius: 6px; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
+                .toggle-btn.active { background: var(--color-text-primary); color: var(--color-bg-app); }
 
                 /* Simple Mode */
                 .value-inputs { display: flex; align-items: center; justify-content: space-between; }
-                .input-col label { display: block; font-size: 12px; color: #666; margin-bottom: 8px; }
+                .input-col label { display: block; font-size: 12px; color: var(--color-text-muted); margin-bottom: 8px; }
                 .arrow-col { display: flex; align-items: center; justify-content: center; padding-top: 24px; }
                 
-                .big-input-wrapper { display: flex; align-items: center; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 0 16px; width: 220px; }
-                .big-input { background: transparent; border: none; color: #fff; font-size: 32px; font-weight: 700; width: 100%; padding: 16px 0; outline: none; text-align: right; }
-                .suffix { font-size: 24px; color: #666; font-weight: 600; margin-left: 8px; }
-                .prefix { font-size: 24px; color: #666; font-weight: 600; margin-right: 8px; }
+                .big-input-wrapper { display: flex; align-items: center; background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: 12px; padding: 0 16px; width: 220px; }
+                .big-input { background: transparent; border: none; color: var(--color-text-primary); font-size: 32px; font-weight: 700; width: 100%; padding: 16px 0; outline: none; text-align: right; }
+                .suffix { font-size: 24px; color: var(--color-text-muted); font-weight: 600; margin-left: 8px; }
+                .prefix { font-size: 24px; color: var(--color-text-muted); font-weight: 600; margin-right: 8px; }
 
                 /* Tiered Matrix */
                 .tiered-matrix { display: flex; flex-direction: column; gap: 8px; }
                 
-                .matrix-toolbar { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 11px; color: #888; }
-                .pill-selector { background: #222; border-radius: 20px; padding: 2px; display: flex; }
-                .pill { background: transparent; border: none; padding: 4px 12px; border-radius: 18px; font-size: 11px; color: #666; cursor: pointer; transition: all 0.2s; }
-                .pill.active { background: #06b6d4; color: #000; font-weight: 600; }
+                .matrix-toolbar { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 11px; color: var(--color-text-muted); }
+                .pill-selector { background: var(--color-bg-app); border-radius: 20px; padding: 2px; display: flex; }
+                .pill { background: transparent; border: none; padding: 4px 12px; border-radius: 18px; font-size: 11px; color: var(--color-text-muted); cursor: pointer; transition: all 0.2s; }
+                .pill.active { background: var(--color-accent-cyan); color: #000; font-weight: 600; }
 
                 .matrix-header { display: flex; padding: 0 12px; margin-bottom: 4px; }
-                .col { flex: 1; font-size: 11px; font-weight: 700; color: #666; text-transform: uppercase; padding-right: 8px; }
+                .col { flex: 1; font-size: 11px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; padding-right: 8px; }
                 .col-action { width: 30px; }
                 
-                .matrix-row { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px; transition: all 0.2s; }
-                .matrix-row:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); }
+                .matrix-row { display: flex; align-items: center; gap: 8px; background: var(--color-bg-card); border: 1px solid var(--color-border); padding: 8px 12px; border-radius: 8px; transition: all 0.2s; }
+                .matrix-row:hover { background: var(--color-bg-input-focus); border-color: var(--color-border-hover); }
                 
-                .field-group { display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 6px; width: 100%; border: 1px solid transparent; }
-                .field-group:focus-within { border-color: #06b6d4; background: rgba(6,182,212,0.05); }
+                .field-group { display: flex; align-items: center; gap: 8px; background: var(--color-bg-input); padding: 6px 10px; border-radius: 6px; width: 100%; border: 1px solid transparent; }
+                .field-group:focus-within { border-color: var(--color-accent-cyan); background: rgba(6,182,212,0.05); }
                 .field-group.highlight { background: rgba(6,182,212,0.1); border-color: rgba(6,182,212,0.2); }
                 
-                .field-icon { opacity: 0.5; color: #fff; }
-                .t-input { background: transparent; border: none; color: #fff; font-size: 13px; width: 100%; outline: none; }
-                .t-input.bold { font-weight: 700; color: #06b6d4; }
-                .t-select { background: transparent; border: none; color: #fff; font-size: 13px; width: 100%; outline: none; cursor: pointer; }
-                .t-select option { background: #000; }
+                .field-icon { opacity: 0.5; color: var(--color-text-primary); }
+                .t-input { background: transparent; border: none; color: var(--color-text-primary); font-size: 13px; width: 100%; outline: none; }
+                .t-input.bold { font-weight: 700; color: var(--color-accent-cyan); }
+                .t-select { background: transparent; border: none; color: var(--color-text-primary); font-size: 13px; width: 100%; outline: none; cursor: pointer; }
+                .t-select option { background: var(--color-bg-panel); color : var(--color-text-primary) }
                 
-                .remove-btn { background: transparent; border: none; color: #666; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; }
+                .remove-btn { background: transparent; border: none; color: var(--color-text-muted); cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; }
                 .remove-btn:hover { color: #f87171; }
                 
-                .add-row-btn { background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.15); padding: 10px; border-radius: 8px; color: #888; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; transition: all 0.2s; }
-                .add-row-btn:hover { color: #fff; border-color: #666; background: rgba(255,255,255,0.06); }
+                .add-row-btn { background: var(--color-bg-card); border: 1px dashed var(--color-border); padding: 10px; border-radius: 8px; color: var(--color-text-muted); font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; transition: all 0.2s; }
+                .add-row-btn:hover { color: var(--color-text-primary); border-color: var(--color-text-muted); background: var(--color-bg-input); }
                 
-                .matrix-info { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 11px; color: #666; font-style: italic; }
+                .matrix-info { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 11px; color: var(--color-text-muted); font-style: italic; }
 
                 /* Radio options */
                 .radio-group { display: flex; gap: 24px; }
-                .radio-opt { display: flex; align-items: center; gap: 8px; cursor: pointer; color: #ccc; font-size: 13px; }
-                .radio-opt input { accent-color: #06b6d4; }
+                .radio-opt { display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--color-text-secondary); font-size: 13px; }
+                .radio-opt input { accent-color: var(--color-accent-cyan); }
 
                 .mt-8 { margin-top: 32px; }
             `}</style>

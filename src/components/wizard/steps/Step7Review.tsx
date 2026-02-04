@@ -1,7 +1,11 @@
 'use client';
 import { CheckCircle2, Gift } from 'lucide-react';
+import { useWizardContext } from '@/context/WizardContext';
 
 export default function StepReview() {
+    const { state } = useWizardContext();
+    const { basics, eligibility, rewards, schedule } = state;
+
     return (
         <div className="step-container">
             <div className="review-layout">
@@ -13,7 +17,7 @@ export default function StepReview() {
                         <h3>Compliance Check Passed</h3>
                         <p>This promotion meets all regulatory guidelines for selected markets.</p>
                     </div>
-                    <div className="status-meta">Scan ID: #90210</div>
+                    <div className="status-meta">Scan ID: #{Date.now().toString().slice(-5)}</div>
                 </div>
 
                 <div className="summary-grid">
@@ -27,11 +31,11 @@ export default function StepReview() {
                         <div className="card-body">
                             <div className="data-row">
                                 <span className="label">Name</span>
-                                <span className="value">Ethiopia Acca Insurance</span>
+                                <span className="value">{basics.name || 'Untitled Promotion'}</span>
                             </div>
                             <div className="data-row">
                                 <span className="label">Type</span>
-                                <span className="value text-yellow">Cashback (Insurance)</span>
+                                <span className="value text-yellow" style={{ textTransform: 'capitalize' }}>{basics.type.replace('_', ' ')}</span>
                             </div>
                             <div className="data-row">
                                 <span className="label">Tags</span>
@@ -49,15 +53,19 @@ export default function StepReview() {
                         <div className="card-body">
                             <div className="data-row">
                                 <span className="label">Markets</span>
-                                <span className="value">🇪🇹 Ethiopia</span>
+                                <div className="value">
+                                    {eligibility.markets.map(m => m.toUpperCase()).join(', ')}
+                                </div>
                             </div>
                             <div className="data-row">
                                 <span className="label">Platforms</span>
-                                <span className="value">Mobile, Lite, App</span>
+                                <span className="value" style={{ textTransform: 'capitalize' }}>
+                                    {eligibility.channels.join(', ')}
+                                </span>
                             </div>
                             <div className="data-row">
                                 <span className="label">Audience</span>
-                                <span className="value">All Players</span>
+                                <span className="value" style={{ textTransform: 'capitalize' }}>{eligibility.segment}</span>
                             </div>
                         </div>
                     </div>
@@ -69,13 +77,23 @@ export default function StepReview() {
                             <h4>Qualification Rules</h4>
                         </div>
                         <div className="card-body">
-                            <div className="rule-preview">
-                                <div>IF <span className="text-purple">Selections ≥ 6</span></div>
-                                <div className="connector">AND</div>
-                                <div>IF <span className="text-cyan">Losing Selections = 1</span></div>
-                                <div className="connector">AND</div>
-                                <div>IF <span className="text-purple">Stake ≥ 5 ETB</span></div>
-                            </div>
+                            {eligibility.triggers.length > 0 ? (
+                                <div className="rule-preview">
+                                    {eligibility.triggers.map((t, i) => (
+                                        <div key={t.id}>
+                                            {i > 0 && <div className="connector">OR</div>}
+                                            <div>EVENT <span className="text-cyan">{t.eventId}</span></div>
+                                            {t.rules.map(r => (
+                                                <div key={r.id} style={{ marginLeft: 8 }}>
+                                                    AND <span className="text-purple">{r.param} {r.operator} {r.value}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="rule-preview">No rules configured.</div>
+                            )}
                         </div>
                     </div>
 
@@ -83,25 +101,29 @@ export default function StepReview() {
                     <div className="glass-panel summary-card">
                         <div className="card-header">
                             <span className="step-num">04</span>
-                            <h4>Incentives (Tiered)</h4>
+                            <h4>Incentives</h4>
                         </div>
                         <div className="card-body">
                             <div className="reward-highlight">
                                 <Gift size={20} className="text-yellow" />
-                                <span>Tiered Cashback</span>
+                                <span style={{ textTransform: 'capitalize' }}>{rewards.type}</span>
                             </div>
-                            <div className="data-row mt-4">
-                                <span className="label">6-7 Selections</span>
-                                <span className="value">100% Stake Back</span>
-                            </div>
-                            <div className="data-row">
-                                <span className="label">8-9 Selections</span>
-                                <span className="value">200% Stake Back</span>
-                            </div>
-                            <div className="data-row">
-                                <span className="label">Max Cap</span>
-                                <span className="value">100,000 ETB</span>
-                            </div>
+                            {rewards.calcType === 'tiered' && rewards.tiers.length > 0 && (
+                                <div className="mt-4">
+                                    {rewards.tiers.slice(0, 3).map(t => (
+                                        <div key={t.id} className="data-row">
+                                            <span className="label">{t.dimensionValue}</span>
+                                            <span className="value">{t.percentage}%</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {rewards.calcType === 'simple' && (
+                                <div className="data-row mt-4">
+                                    <span className="label">Match</span>
+                                    <span className="value">{rewards.simpleConfig.percentage}%</span>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -114,11 +136,11 @@ export default function StepReview() {
                         <div className="card-body">
                             <div className="data-row">
                                 <span className="label">Start</span>
-                                <span className="value">Launch Date (TBD)</span>
+                                <span className="value">{schedule.startDate ? new Date(schedule.startDate).toLocaleDateString() : 'TBD'}</span>
                             </div>
                             <div className="data-row">
                                 <span className="label">Duration</span>
-                                <span className="value">Indefinite</span>
+                                <span className="value">{schedule.isRecurring ? `Recurring (${schedule.recurrence.frequency})` : 'Fixed Period'}</span>
                             </div>
                         </div>
                     </div>
@@ -164,9 +186,9 @@ export default function StepReview() {
                     margin-bottom: 32px;
                 }
                 .status-icon { color: var(--color-betika-green); }
-                .status-content h3 { margin: 0 0 4px 0; font-size: 16px; color: #fff; }
+                .status-content h3 { margin: 0 0 4px 0; font-size: 16px; color: var(--color-text-primary); }
                 .status-content p { margin: 0; font-size: 13px; color: var(--color-text-secondary); }
-                .status-meta { margin-left: auto; font-family: monospace; font-size: 12px; color: var(--color-text-muted); background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 4px; }
+                .status-meta { margin-left: auto; font-family: monospace; font-size: 12px; color: var(--color-text-muted); background: var(--color-bg-card); padding: 4px 8px; border-radius: 4px; }
 
                 .summary-grid {
                     display: grid;
@@ -176,28 +198,29 @@ export default function StepReview() {
                 }
 
                 .summary-card { padding: 20px; border-radius: 12px; height: 100%; display: flex; flex-direction: column; }
-                .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; }
-                .step-num { font-size: 10px; font-weight: 700; color: #000; background: var(--color-text-muted); padding: 2px 6px; border-radius: 4px; }
-                .card-header h4 { margin: 0; font-size: 14px; font-weight: 600; color: #fff; }
+                .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid var(--color-border); padding-bottom: 12px; }
+                .step-num { font-size: 10px; font-weight: 700; color: var(--color-bg-app); background: var(--color-text-muted); padding: 2px 6px; border-radius: 4px; }
+                .card-header h4 { margin: 0; font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
 
                 .card-body { font-size: 13px; display: flex; flex-direction: column; gap: 12px; }
                 .data-row { display: flex; justify-content: space-between; align-items: center; }
                 .label { color: var(--color-text-muted); }
-                .value { color: #fff; font-weight: 500; text-align: right; }
+                .value { color: var(--color-text-primary); font-weight: 500; text-align: right; }
                 .text-yellow { color: var(--color-betika-yellow); }
                 .text-xs { font-size: 11px; max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
                 
                 .tags { display: flex; gap: 4px; }
-                .tag { font-size: 10px; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; color: var(--color-text-secondary); }
+                .tag { font-size: 10px; background: var(--color-bg-card); padding: 2px 6px; border-radius: 4px; color: var(--color-text-secondary); }
 
                 /* Mechanics */
-                .rule-preview { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #ccc; }
+                .rule-preview { background: var(--color-bg-input); padding: 12px; border-radius: 8px; font-family: monospace; font-size: 12px; color: var(--color-text-secondary); overflow-wrap: break-word; }
                 .connector { font-size: 10px; color: var(--color-betika-yellow); font-weight: 700; margin: 4px 0; text-align: center; }
                 .text-purple { color: var(--color-accent-purple); }
                 .text-cyan { color: var(--color-accent-cyan); }
 
                 /* Reward */
-                .reward-highlight { display: flex; gap: 12px; align-items: center; font-size: 14px; font-weight: 700; color: #fff; background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; justify-content: center; }
+                /* Reward */
+                .reward-highlight { display: flex; gap: 12px; align-items: center; font-size: 14px; font-weight: 700; color: var(--color-text-primary); background: var(--color-bg-card); padding: 12px; border-radius: 8px; justify-content: center; }
                 .mt-4 { margin-top: 4px; }
 
                 .confirmation-area { display: flex; justify-content: center; margin-top: 16px; }

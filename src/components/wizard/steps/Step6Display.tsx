@@ -1,14 +1,23 @@
 'use client';
 import { Image, Type, Flag, FileText, UploadCloud, Eye, Globe, MessageSquare, Send, Bell } from 'lucide-react';
-import { useState } from 'react';
+import { useWizardContext } from '@/context/WizardContext';
 
 export default function StepDisplay() {
-    const [activeTab, setActiveTab] = useState('display'); // display | communication
-    const [smsEnabled, setSmsEnabled] = useState(true);
-    const [pushEnabled, setPushEnabled] = useState(false);
+    const { state, updateDisplay } = useWizardContext();
+    const { activeTab, title, teaser, badges, communication } = state.display;
 
-    // Default Cashia Mock Data
-    const [smsTemplate, setSmsTemplate] = useState("Congratulations! Kshs {{amount}} cashback credited for {{week}} via Cashia. Check your Wallet. Deposit Kshs 50+ to stay eligible for next week. T&Cs apply.");
+    // Helpers for updating nested communication object
+    const updateComm = (data: Partial<typeof communication>) => {
+        updateDisplay({ communication: { ...communication, ...data } });
+    };
+
+    const toggleBadge = (badge: string) => {
+        if (badges.includes(badge)) {
+            updateDisplay({ badges: badges.filter(b => b !== badge) });
+        } else {
+            updateDisplay({ badges: [...badges, badge] });
+        }
+    };
 
     return (
         <div className="step-container">
@@ -18,8 +27,14 @@ export default function StepDisplay() {
                     <div className="panel-header-row">
                         <h2 className="panel-title">Content Configuration</h2>
                         <div className="mode-toggle">
-                            <button className={`mode-btn ${activeTab === 'display' ? 'active' : ''}`} onClick={() => setActiveTab('display')}>Display</button>
-                            <button className={`mode-btn ${activeTab === 'communication' ? 'active' : ''}`} onClick={() => setActiveTab('communication')}>Communication</button>
+                            <button
+                                className={`mode-btn ${activeTab === 'display' ? 'active' : ''}`}
+                                onClick={() => updateDisplay({ activeTab: 'display' })}
+                            >Display</button>
+                            <button
+                                className={`mode-btn ${activeTab === 'communication' ? 'active' : ''}`}
+                                onClick={() => updateDisplay({ activeTab: 'communication' })}
+                            >Communication</button>
                         </div>
                     </div>
 
@@ -46,11 +61,21 @@ export default function StepDisplay() {
                                 <label className="section-label"><Type size={16} /> Public Content</label>
                                 <div className="input-group">
                                     <label>Display Title (Public)</label>
-                                    <input type="text" defaultValue="Cashia Launch Cashback" className="form-input" />
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        value={title}
+                                        onChange={(e) => updateDisplay({ title: e.target.value })}
+                                    />
                                 </div>
                                 <div className="input-group">
                                     <label>Short Teaser</label>
-                                    <textarea className="form-input" rows={2} defaultValue="Get up to 30% weekly cashback on your deposits with Cashia!"></textarea>
+                                    <textarea
+                                        className="form-input"
+                                        rows={2}
+                                        value={teaser}
+                                        onChange={(e) => updateDisplay({ teaser: e.target.value })}
+                                    ></textarea>
                                 </div>
                             </div>
 
@@ -59,7 +84,11 @@ export default function StepDisplay() {
                                 <label className="section-label"><Flag size={16} /> Badges</label>
                                 <div className="badge-selector">
                                     {['NEW', 'HOT', 'LIMITED', 'VIP'].map(badge => (
-                                        <div key={badge} className={`badge-option ${badge === 'NEW' ? 'active' : ''}`}>
+                                        <div
+                                            key={badge}
+                                            className={`badge-option ${badges.includes(badge) ? 'active' : ''}`}
+                                            onClick={() => toggleBadge(badge)}
+                                        >
                                             {badge}
                                         </div>
                                     ))}
@@ -72,7 +101,11 @@ export default function StepDisplay() {
                             <div className="form-section">
                                 <label className="section-label"><MessageSquare size={16} /> Notification Channels</label>
                                 <div className="channel-toggles">
-                                    <div className={`channel-card ${smsEnabled ? 'active' : ''}`} onClick={() => setSmsEnabled(!smsEnabled)}>
+                                    {/* SMS Toggle */}
+                                    <div
+                                        className={`channel-card ${communication.smsEnabled ? 'active' : ''}`}
+                                        onClick={() => updateComm({ smsEnabled: !communication.smsEnabled })}
+                                    >
                                         <div className="ch-icon"><MessageSquare size={18} /></div>
                                         <div className="ch-info">
                                             <h3>SMS</h3>
@@ -82,7 +115,12 @@ export default function StepDisplay() {
                                             <div className="switch-knob" />
                                         </div>
                                     </div>
-                                    <div className={`channel-card ${pushEnabled ? 'active' : ''}`} onClick={() => setPushEnabled(!pushEnabled)}>
+
+                                    {/* Push Toggle */}
+                                    <div
+                                        className={`channel-card ${communication.pushEnabled ? 'active' : ''}`}
+                                        onClick={() => updateComm({ pushEnabled: !communication.pushEnabled })}
+                                    >
                                         <div className="ch-icon"><Bell size={18} /></div>
                                         <div className="ch-info">
                                             <h3>Push Notification</h3>
@@ -95,24 +133,24 @@ export default function StepDisplay() {
                                 </div>
                             </div>
 
-                            {smsEnabled && (
+                            {communication.smsEnabled && (
                                 <div className="form-section animate-fade">
                                     <label className="section-label">SMS Template</label>
                                     <div className="template-editor">
                                         <div className="var-toolbar">
                                             <span>Insert Variable:</span>
-                                            <button className="var-chip" onClick={() => setSmsTemplate(prev => prev + ' {{amount}}')}>Amount</button>
-                                            <button className="var-chip" onClick={() => setSmsTemplate(prev => prev + ' {{week}}')}>Week</button>
-                                            <button className="var-chip" onClick={() => setSmsTemplate(prev => prev + ' {{player_name}}')}>Player Name</button>
+                                            <button className="var-chip" onClick={() => updateComm({ smsTemplate: communication.smsTemplate + ' {{amount}}' })}>Amount</button>
+                                            <button className="var-chip" onClick={() => updateComm({ smsTemplate: communication.smsTemplate + ' {{week}}' })}>Week</button>
+                                            <button className="var-chip" onClick={() => updateComm({ smsTemplate: communication.smsTemplate + ' {{player_name}}' })}>Player Name</button>
                                         </div>
                                         <textarea
                                             className="template-input"
                                             rows={4}
-                                            value={smsTemplate}
-                                            onChange={(e) => setSmsTemplate(e.target.value)}
+                                            value={communication.smsTemplate}
+                                            onChange={(e) => updateComm({ smsTemplate: e.target.value })}
                                         ></textarea>
                                         <div className="char-count">
-                                            {smsTemplate.length} characters • 1 Segment
+                                            {communication.smsTemplate.length} characters • 1 Segment
                                         </div>
                                     </div>
                                 </div>
@@ -142,11 +180,11 @@ export default function StepDisplay() {
                             {activeTab === 'display' ? (
                                 <div className="promo-card-preview">
                                     <div className="card-image-area">
-                                        <div className="card-badge">NEW</div>
+                                        {badges.length > 0 && <div className="card-badge">{badges[0]}</div>}
                                     </div>
                                     <div className="card-content">
-                                        <h4 className="card-title">Cashia Launch Cashback</h4>
-                                        <p className="card-desc">Get up to 30% weekly cashback on your deposits with Cashia! Limited time offer.</p>
+                                        <h4 className="card-title">{title}</h4>
+                                        <p className="card-desc">{teaser}</p>
                                         <button className="card-btn">Deposit Now</button>
                                     </div>
                                     <div className="card-footer">
@@ -161,7 +199,7 @@ export default function StepDisplay() {
                                             <span className="time">Now</span>
                                         </div>
                                         <div className="notif-body">
-                                            {smsTemplate
+                                            {communication.smsTemplate
                                                 .replace('{{amount}}', '100')
                                                 .replace('{{week}}', 'Week 1')
                                                 .replace('{{player_name}}', 'John')
@@ -189,63 +227,63 @@ export default function StepDisplay() {
 
                 .form-panel { padding: 40px; }
                 .panel-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
-                .panel-title { font-size: 20px; font-weight: 700; color: #fff; margin: 0; }
+                .panel-title { font-size: 20px; font-weight: 700; color: var(--color-text-primary); margin: 0; }
                 
-                .mode-toggle { background: rgba(255,255,255,0.05); padding: 4px; border-radius: 8px; display: flex; gap: 4px; }
-                .mode-btn { background: transparent; border: none; padding: 6px 12px; font-size: 13px; color: #888; cursor: pointer; border-radius: 6px; font-weight: 500; transition: all 0.2s; }
-                .mode-btn.active { background: #333; color: #fff; }
+                .mode-toggle { background: var(--color-bg-card); padding: 4px; border-radius: 8px; display: flex; gap: 4px; }
+                .mode-btn { background: transparent; border: none; padding: 6px 12px; font-size: 13px; color: var(--color-text-muted); cursor: pointer; border-radius: 6px; font-weight: 500; transition: all 0.2s; }
+                .mode-btn.active { background: var(--color-text-primary); color: var(--color-bg-app); }
 
                 .form-section { margin-bottom: 32px; }
                 .section-label { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
 
                 /* Upload Area */
                 .upload-area { display: flex; gap: 16px; }
-                .upload-placeholder { flex: 1; border: 2px dashed rgba(255,255,255,0.1); border-radius: 12px; height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+                .upload-placeholder { flex: 1; border: 2px dashed var(--color-border); border-radius: 12px; height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
                 .upload-placeholder:hover { border-color: var(--color-accent-purple); background: rgba(168, 85, 247, 0.05); }
                 .text-muted { color: var(--color-text-muted); margin-bottom: 8px; }
-                .upload-text { font-size: 14px; font-weight: 500; color: #fff; }
+                .upload-text { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
                 .upload-sub { font-size: 11px; color: var(--color-text-muted); }
                 .preview-mini { display: flex; flex-direction: column; gap: 8px; }
-                .mini-box { width: 60px; height: 56px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
+                .mini-box { width: 60px; height: 56px; background: var(--color-bg-card); border-radius: 8px; border: 1px solid var(--color-border); }
 
                 /* Text Inputs */
                 .input-group { margin-bottom: 16px; }
                 .input-group label { display: block; margin-bottom: 8px; font-size: 12px; color: var(--color-text-muted); }
-                .form-input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 12px; border-radius: 8px; font-family: inherit; font-size: 14px; }
+                .form-input { width: 100%; background: var(--color-bg-input); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 12px; border-radius: 8px; font-family: inherit; font-size: 14px; }
                 .form-input:focus { border-color: var(--color-accent-cyan); outline: none; }
 
                 /* Badges */
                 .badge-selector { display: flex; gap: 12px; }
-                .badge-option { padding: 6px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-                .badge-option:hover { background: rgba(255,255,255,0.1); }
+                .badge-option { padding: 6px 16px; background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; color: var(--color-text-primary); }
+                .badge-option:hover { background: var(--color-border-hover); }
                 .badge-option.active { background: var(--color-betika-yellow); color: #000; border-color: var(--color-betika-yellow); }
 
                 /* Communication Channel Cards */
                 .channel-toggles { display: flex; flex-direction: column; gap: 12px; }
-                .channel-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 16px; border-radius: 12px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s; }
-                .channel-card:hover { background: rgba(255,255,255,0.06); }
+                .channel-card { background: var(--color-bg-card); border: 1px solid var(--color-border); padding: 16px; border-radius: 12px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s; }
+                .channel-card:hover { background: var(--color-bg-input-focus); }
                 .channel-card.active { border-color: var(--color-accent-cyan); background: rgba(6, 182, 212, 0.05); }
                 
-                .ch-icon { width: 40px; height: 40px; border-radius: 8px; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; color: #fff; }
+                .ch-icon { width: 40px; height: 40px; border-radius: 8px; background: var(--color-border); display: flex; align-items: center; justify-content: center; color: var(--color-text-primary); }
                 .channel-card.active .ch-icon { background: var(--color-accent-cyan); color: #000; }
                 
                 .ch-info { flex: 1; }
-                .ch-info h3 { margin: 0 0 2px 0; font-size: 14px; color: #fff; font-weight: 600; }
-                .ch-info p { margin: 0; font-size: 12px; color: #666; }
+                .ch-info h3 { margin: 0 0 2px 0; font-size: 14px; color: var(--color-text-primary); font-weight: 600; }
+                .ch-info p { margin: 0; font-size: 12px; color: var(--color-text-muted); }
                 
-                .toggle-switch { width: 44px; height: 24px; background: rgba(255,255,255,0.1); border-radius: 12px; padding: 2px; position: relative; transition: all 0.2s; }
-                .switch-knob { width: 20px; height: 20px; background: #888; border-radius: 50%; transition: all 0.2s; }
+                .toggle-switch { width: 44px; height: 24px; background: var(--color-border); border-radius: 12px; padding: 2px; position: relative; transition: all 0.2s; }
+                .switch-knob { width: 20px; height: 20px; background: var(--color-text-muted); border-radius: 50%; transition: all 0.2s; }
                 .channel-card.active .toggle-switch { background: rgba(6, 182, 212, 0.3); }
                 .channel-card.active .switch-knob { transform: translateX(20px); background: var(--color-accent-cyan); }
 
                 /* SMS Editor */
-                .template-editor { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden; }
-                .var-toolbar { background: rgba(255,255,255,0.05); padding: 8px; display: flex; gap: 8px; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; color: #888; }
-                .var-chip { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 4px; color: var(--color-accent-cyan); font-size: 11px; cursor: pointer; }
+                .template-editor { background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; }
+                .var-toolbar { background: var(--color-bg-card); padding: 8px; display: flex; gap: 8px; align-items: center; border-bottom: 1px solid var(--color-border); font-size: 12px; color: var(--color-text-muted); }
+                .var-chip { background: var(--color-bg-app); border: 1px solid var(--color-border); padding: 2px 8px; border-radius: 4px; color: var(--color-accent-cyan); font-size: 11px; cursor: pointer; }
                 .var-chip:hover { border-color: var(--color-accent-cyan); }
                 
-                .template-input { width: 100%; background: transparent; border: none; padding: 12px; color: #fff; font-family: monospace; font-size: 13px; outline: none; resize: vertical; }
-                .char-count { padding: 4px 12px; font-size: 11px; color: #666; text-align: right; background: rgba(0,0,0,0.2); }
+                .template-input { width: 100%; background: transparent; border: none; padding: 12px; color: var(--color-text-primary); font-family: monospace; font-size: 13px; outline: none; resize: vertical; }
+                .char-count { padding: 4px 12px; font-size: 11px; color: var(--color-text-muted); text-align: right; background: var(--color-bg-card); }
 
                 .animate-fade { animation: fadeIn 0.3s ease; }
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }

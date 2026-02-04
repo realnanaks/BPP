@@ -1,6 +1,7 @@
 'use client';
-import { Layers, Zap, Users, Code, Trash2, Plus, X, ChevronDown } from 'lucide-react';
+import { Layers, Zap, Users, Code, Trash2, Plus, X, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useWizardContext, Trigger, Rule } from '@/context/WizardContext';
 
 // Extensive Event Catalog for the Event-Driven Engine
 
@@ -164,61 +165,61 @@ const OPERATORS = [
     { value: 'contains', label: 'Contains' }
 ];
 
-interface Rule {
-    id: number;
-    param: string;
-    operator: string;
-    value: string;
-    type: string;
-}
-
-interface Trigger {
-    id: string;
-    eventId: string;
-    rules: Rule[];
-}
-
 export default function StepEligibility() {
-    const [markets, setMarkets] = useState(['ke']);
-    const [channels, setChannels] = useState(['mobile', 'app']);
-    const [showNewSegmentForm, setShowNewSegmentForm] = useState(false);
+    const { state, updateEligibility } = useWizardContext();
+    const { markets, channels, triggers } = state.eligibility;
 
-    // Multi-Trigger State
-    const [triggers, setTriggers] = useState<Trigger[]>([]);
+    // Local UI state
     const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+    const [isSegmentModalOpen, setIsSegmentModalOpen] = useState(false);
+    const [newSegmentName, setNewSegmentName] = useState('');
+    const [customSegments, setCustomSegments] = useState<string[]>([]);
     const [activeTriggerIdForParam, setActiveTriggerIdForParam] = useState<string | null>(null);
     const [isAdvancedMode, setIsAdvancedMode] = useState(false);
 
     // Initial load: Add empty Deposit trigger if none exists (common start point)
     useEffect(() => {
         if (triggers.length === 0) {
-            setTriggers([{ id: 't-init', eventId: 'deposit', rules: [] }]);
+            updateEligibility({ triggers: [{ id: 't-init', eventId: 'deposit', rules: [] }] });
         }
     }, []);
 
     const toggleMarket = (id: string) => {
-        if (markets.includes(id)) setMarkets(markets.filter(m => m !== id));
-        else setMarkets([...markets, id]);
+        if (markets.includes(id)) updateEligibility({ markets: markets.filter(m => m !== id) });
+        else updateEligibility({ markets: [...markets, id] });
     };
 
     const toggleChannel = (id: string) => {
-        if (channels.includes(id)) setChannels(channels.filter(c => c !== id));
-        else setChannels([...channels, id]);
+        if (channels.includes(id)) updateEligibility({ channels: channels.filter(c => c !== id) });
+        else updateEligibility({ channels: [...channels, id] });
+    };
+
+    const setSegment = (val: string) => {
+        updateEligibility({ segment: val });
+    };
+
+    const handleCreateSegment = () => {
+        if (!newSegmentName.trim()) return;
+        const id = newSegmentName.toLowerCase().replace(/\s+/g, '_');
+        setCustomSegments([...customSegments, id]);
+        setSegment(id);
+        setIsSegmentModalOpen(false);
+        setNewSegmentName('');
     };
 
     // --- Trigger Logic ---
     const selectEvent = (eventId: string) => {
-        setTriggers([...triggers, { id: `t-${Date.now()}`, eventId, rules: [] }]);
+        updateEligibility({ triggers: [...triggers, { id: `t-${Date.now()}`, eventId, rules: [] }] });
         setIsEventModalOpen(false);
     };
 
     const removeTrigger = (triggerId: string) => {
-        setTriggers(triggers.filter(t => t.id !== triggerId));
+        updateEligibility({ triggers: triggers.filter(t => t.id !== triggerId) });
     };
 
     // --- Rule Logic ---
     const addRuleToTrigger = (triggerId: string, paramObj: any) => {
-        setTriggers(triggers.map(t => {
+        const updatedTriggers = triggers.map(t => {
             if (t.id === triggerId) {
                 return {
                     ...t,
@@ -232,21 +233,23 @@ export default function StepEligibility() {
                 };
             }
             return t;
-        }));
+        });
+        updateEligibility({ triggers: updatedTriggers });
         setActiveTriggerIdForParam(null);
     };
 
     const removeRuleFromTrigger = (triggerId: string, ruleId: number) => {
-        setTriggers(triggers.map(t => {
+        const updatedTriggers = triggers.map(t => {
             if (t.id === triggerId) {
                 return { ...t, rules: t.rules.filter(r => r.id !== ruleId) };
             }
             return t;
-        }));
+        });
+        updateEligibility({ triggers: updatedTriggers });
     };
 
     const updateRule = (triggerId: string, ruleId: number, field: string, value: string) => {
-        setTriggers(triggers.map(t => {
+        const updatedTriggers = triggers.map(t => {
             if (t.id === triggerId) {
                 return {
                     ...t,
@@ -254,7 +257,8 @@ export default function StepEligibility() {
                 };
             }
             return t;
-        }));
+        });
+        updateEligibility({ triggers: updatedTriggers });
     };
 
     // --- Helpers ---
@@ -328,9 +332,24 @@ export default function StepEligibility() {
 
                     <div className="section">
                         <label className="section-label">Markets</label>
-                        <div className="chip-grid">
-                            {['KE', 'GH', 'NG', 'ET', 'TZ', 'UG'].map(m => (
-                                <div key={m} className={`chip ${markets.includes(m.toLowerCase()) ? 'active' : ''}`} onClick={() => toggleMarket(m.toLowerCase())}>{m}</div>
+                        <div className="grid-options">
+                            {[
+                                { id: 'ke', name: 'Kenya', flag: '🇰🇪' },
+                                { id: 'gh', name: 'Ghana', flag: '🇬🇭' },
+                                { id: 'zm', name: 'Zambia', flag: '🇿🇲' },
+                                { id: 'et', name: 'Ethiopia', flag: '🇪🇹' },
+                                { id: 'tz', name: 'Tanzania', flag: '🇹🇿' },
+                                { id: 'ug', name: 'Uganda', flag: '🇺🇬' },
+                            ].map((m) => (
+                                <div
+                                    key={m.id}
+                                    className={`option-card market-card ${markets.includes(m.id) ? 'active' : ''}`}
+                                    onClick={() => toggleMarket(m.id)}
+                                >
+                                    <span className="flag-large">{m.flag}</span>
+                                    <span className="name">{m.name}</span>
+                                    {markets.includes(m.id) && <CheckCircle2 size={16} className="check-icon" />}
+                                </div>
                             ))}
                         </div>
                     </div>
@@ -348,134 +367,252 @@ export default function StepEligibility() {
 
                     <div className="section">
                         <label className="section-label">Player Segments</label>
-                        <select className="form-select full-width">
+                        <select
+                            className="form-select full-width"
+                            value={state.eligibility.segment}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === 'create_new') {
+                                    setIsSegmentModalOpen(true);
+                                    return;
+                                }
+                                setSegment(val);
+                            }}
+                        >
                             <option value="all">All Registered Players</option>
                             <option value="new">New Players (&lt;30 days)</option>
                             <option value="vip">VIP Tiers 1-3</option>
+                            {customSegments.map(seg => (
+                                <option key={seg} value={seg}>{seg.replace(/_/g, ' ').toUpperCase()}</option>
+                            ))}
+                            <optgroup label="Actions">
+                                <option value="create_new">+ Create New Segment</option>
+                            </optgroup>
                         </select>
                     </div>
                 </div>
 
                 {/* RIGHT COLUMN: Triggers */}
+                {/* RIGHT COLUMN: Triggers */}
                 <div className="glass-panel column-panel flex-grow relative-container">
-                    <div className="panel-header">
-                        <div className="header-row">
-                            <div>
-                                <h3 className="panel-title"><Zap size={18} className="text-yellow" /> Qualification Rules</h3>
-                                <p className="panel-subtitle">Event-driven triggers</p>
+                    {!customSegments.includes(state.eligibility.segment) ? (
+                        <>
+                            <div className="panel-header">
+                                <div className="header-row">
+                                    <div>
+                                        <h3 className="panel-title"><Zap size={18} className="text-yellow" /> Qualification Rules</h3>
+                                        <p className="panel-subtitle">Event-driven triggers</p>
+                                    </div>
+                                    <div className="sh-actions">
+                                        <button className={`btn-xs ${isAdvancedMode ? 'active-mode' : ''}`} onClick={() => setIsAdvancedMode(!isAdvancedMode)}>
+                                            <Code size={12} /> Advanced
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <button className={`btn-xs ${isAdvancedMode ? 'active-mode' : ''}`} onClick={() => setIsAdvancedMode(!isAdvancedMode)}>
-                                <Code size={12} /> Advanced
-                            </button>
-                        </div>
-                    </div>
 
-                    {isAdvancedMode ? (
-                        <div className="advanced-editor">
-                            <div className="editor-lines">
-                                <span className="kwd">PROMOTION RULES</span>
-                                {triggers.map((trigger, idx) => (
-                                    <div key={trigger.id} className="code-block">
-                                        {idx > 0 && <div className="kwd block-sep">OR</div>}
-                                        <div><span className="kwd">WHEN</span> EVENT <span className="str">"{getEventLabel(trigger.eventId)}"</span></div>
-                                        {trigger.rules.map((rule) => (
-                                            <div key={rule.id} style={{ paddingLeft: 20 }}>
-                                                <span className="kwd">AND</span> <span className="prop">{rule.param}</span> <span className="op">{rule.operator}</span> <span className="val">"{rule.value}"</span>
+                            <div className="form-section" style={{ overflowY: 'auto', flex: 1 }}>
+                                {isAdvancedMode ? (
+                                    <div className="advanced-editor">
+                                        <div className="editor-lines">
+                                            <span className="kwd">PROMOTION RULES</span>
+                                            {triggers.map((trigger, idx) => (
+                                                <div key={trigger.id} className="code-block">
+                                                    {idx > 0 && <div className="kwd block-sep">OR</div>}
+                                                    <div><span className="kwd">WHEN</span> EVENT <span className="str">"{getEventLabel(trigger.eventId)}"</span></div>
+                                                    {trigger.rules.map((rule) => (
+                                                        <div key={rule.id} style={{ paddingLeft: 20 }}>
+                                                            <span className="kwd">AND</span> <span className="prop">{rule.param}</span> <span className="op">{rule.operator}</span> <span className="val">"{rule.value}"</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="triggers-container">
+                                        {triggers.map((trigger, index) => (
+                                            <div key={trigger.id} className="trigger-card">
+                                                <div className="trigger-header">
+                                                    <div className="trigger-title">
+                                                        <span className="trigger-badge">WHEN</span>
+                                                        <span className="trigger-name">{getEventLabel(trigger.eventId)}</span>
+                                                    </div>
+                                                    <button className="icon-btn danger" onClick={() => removeTrigger(trigger.id)}><Trash2 size={14} /></button>
+                                                </div>
+
+                                                <div className="rules-list">
+                                                    {trigger.rules.map((rule) => {
+                                                        return (
+                                                            <div key={rule.id} className="rule-item">
+                                                                <div className="rule-badge">AND</div>
+                                                                <div className="rule-content">
+                                                                    <span className="param-label">{rule.param}</span>
+                                                                    <div className="op-mini-wrapper">
+                                                                        <select className="op-mini" value={rule.operator} onChange={(e) => updateRule(trigger.id, rule.id, 'operator', e.target.value)}>
+                                                                            {OPERATORS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
+                                                                        </select>
+                                                                    </div>
+                                                                    {renderValueInput(rule, trigger.id)}
+                                                                </div>
+                                                                <button className="icon-btn" onClick={() => removeRuleFromTrigger(trigger.id, rule.id)}><X size={12} /></button>
+                                                            </div>
+                                                        );
+                                                    })}
+
+                                                    <div className="add-condition-section">
+                                                        {activeTriggerIdForParam === trigger.id ? (
+                                                            <div className="param-selector-inline">
+                                                                <div className="param-picker-header">
+                                                                    <span>Select Parameter</span>
+                                                                    <button onClick={() => setActiveTriggerIdForParam(null)}><X size={12} /></button>
+                                                                </div>
+                                                                <div className="param-options">
+                                                                    {getParams(trigger.eventId).map(p => (
+                                                                        <button key={p.name} className="param-opt" onClick={() => addRuleToTrigger(trigger.id, p)}>
+                                                                            {p.name}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <button className="add-condition-btn" onClick={() => setActiveTriggerIdForParam(trigger.id)}>
+                                                                <Plus size={14} /> Add Condition
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {index < triggers.length - 1 && <div className="logic-connector">OR</div>}
                                             </div>
                                         ))}
+
+                                        <button className="btn-add-trigger" onClick={() => setIsEventModalOpen(true)}>
+                                            <Plus size={16} /> Add Trigger Event
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="empty-state-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--color-text-muted)', textAlign: 'center', padding: '40px' }}>
+                            <Layers size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
+                            <h3 style={{ color: 'var(--color-text-primary)', marginBottom: '8px' }}>Segment-Based Qualification</h3>
+                            <p style={{ maxWidth: '300px', lineHeight: '1.5' }}>
+                                You are targeting the <strong style={{ color: 'var(--color-accent-cyan)' }}>{state.eligibility.segment.replace(/_/g, ' ').toUpperCase()}</strong> segment.
+                            </p>
+                            <p style={{ fontSize: '12px', marginTop: '8px' }}>Qualification rules are defined within the segment criteria.</p>
+                        </div>
+                    )}
+                </div>
+
+
+                {/* Event Selection Modal Overlay */}
+                {isEventModalOpen && (
+                    <div className="modal-overlay">
+                        <div className="event-modal">
+                            <div className="modal-header">
+                                <h3>Select Trigger Event</h3>
+                                <button onClick={() => setIsEventModalOpen(false)}><X size={18} /></button>
+                            </div>
+                            <div className="modal-body">
+                                {Object.entries(EVENT_CATALOG).map(([key, cat]) => (
+                                    <div key={key} className="catalog-category">
+                                        <div className="cat-header">{cat.label}</div>
+                                        <div className="cat-grid">
+                                            {cat.events.map(ev => (
+                                                <button key={ev.id} className="event-tile" onClick={() => selectEvent(ev.id)}>
+                                                    <span className="ev-label">{ev.label}</span>
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
-                    ) : (
-                        <div className="triggers-container">
-                            {triggers.map((trigger, index) => (
-                                <div key={trigger.id} className="trigger-card">
-                                    <div className="trigger-header">
-                                        <div className="trigger-title">
-                                            <span className="trigger-badge">WHEN</span>
-                                            <span className="trigger-name">{getEventLabel(trigger.eventId)}</span>
+                    </div>
+                )}
+
+                {/* Segment Creation Modal */}
+                {isSegmentModalOpen && (
+                    <div className="modal-overlay">
+                        <div className="event-modal" style={{ width: '800px' }}>
+                            <div className="modal-header">
+                                <h3>Create New Player Segment</h3>
+                                <button onClick={() => setIsSegmentModalOpen(false)}><X size={18} /></button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="form-control">
+                                    <label>Segment Name</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. High Rollers Q1"
+                                        value={newSegmentName}
+                                        onChange={(e) => setNewSegmentName(e.target.value)}
+                                    />
+                                </div>
+                                <div className="form-control">
+                                    <label>Description (Optional)</label>
+                                    <textarea placeholder="Describe criteria..." rows={2}></textarea>
+                                </div>
+
+                                {/* Segment Criteria Builder (Reusing Event Strategy) */}
+                                <div className="form-section" style={{ marginTop: '24px' }}>
+                                    <div className="section-header">
+                                        <div className="sh-title">
+                                            <Zap size={18} className="text-yellow" />
+                                            <span>Segment Rules</span>
                                         </div>
-                                        <button className="icon-btn danger" onClick={() => removeTrigger(trigger.id)}><Trash2 size={14} /></button>
                                     </div>
 
-                                    <div className="rules-list">
-                                        {trigger.rules.map((rule) => {
-                                            return (
-                                                <div key={rule.id} className="rule-item">
+                                    <div className="triggers-container">
+                                        {/* Mock Trigger for Visualization matching main UI */}
+                                        <div className="trigger-card">
+                                            <div className="trigger-header">
+                                                <div className="trigger-title">
+                                                    <span className="trigger-badge">WHEN</span>
+                                                    <span className="trigger-name">Deposit</span>
+                                                </div>
+                                                <button className="icon-btn danger"><Trash2 size={14} /></button>
+                                            </div>
+
+                                            <div className="rules-list">
+                                                <div className="rule-item">
                                                     <div className="rule-badge">AND</div>
                                                     <div className="rule-content">
-                                                        <span className="param-label">{rule.param}</span>
-                                                        <select className="op-mini" value={rule.operator} onChange={(e) => updateRule(trigger.id, rule.id, 'operator', e.target.value)}>
-                                                            {OPERATORS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
-                                                        </select>
-                                                        {renderValueInput(rule, trigger.id)}
+                                                        <span className="param-label">Amount</span>
+                                                        <div className="op-mini-wrapper">
+                                                            <select className="op-mini" defaultValue="gt">
+                                                                <option value="gt">Greater Than</option>
+                                                            </select>
+                                                        </div>
+                                                        <input type="number" className="val-mini input" defaultValue="100" />
                                                     </div>
-                                                    <button className="icon-btn" onClick={() => removeRuleFromTrigger(trigger.id, rule.id)}><X size={12} /></button>
+                                                    <button className="icon-btn"><X size={12} /></button>
                                                 </div>
-                                            );
-                                        })}
 
-                                        {/* Add Condition Section */}
-                                        <div className="add-condition-section">
-                                            {activeTriggerIdForParam === trigger.id ? (
-                                                <div className="param-selector-inline">
-                                                    <div className="param-picker-header">
-                                                        <span>Select Parameter</span>
-                                                        <button onClick={() => setActiveTriggerIdForParam(null)}><X size={12} /></button>
-                                                    </div>
-                                                    <div className="param-options">
-                                                        {getParams(trigger.eventId).map(p => (
-                                                            <button key={p.name} className="param-opt" onClick={() => addRuleToTrigger(trigger.id, p)}>
-                                                                {p.name}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <button className="add-condition-btn" onClick={() => setActiveTriggerIdForParam(trigger.id)}>
-                                                    <Plus size={14} /> Add Condition
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {index < triggers.length - 1 && <div className="logic-connector">OR</div>}
-                                </div>
-                            ))}
-
-                            <button className="add-trigger-btn" onClick={() => setIsEventModalOpen(true)}>
-                                <Plus size={16} /> Add Another Trigger Event
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Event Selection Modal Overlay */}
-                    {isEventModalOpen && (
-                        <div className="modal-overlay">
-                            <div className="event-modal">
-                                <div className="modal-header">
-                                    <h3>Select Trigger Event</h3>
-                                    <button onClick={() => setIsEventModalOpen(false)}><X size={18} /></button>
-                                </div>
-                                <div className="modal-body">
-                                    {Object.entries(EVENT_CATALOG).map(([key, cat]) => (
-                                        <div key={key} className="catalog-category">
-                                            <div className="cat-header">{cat.label}</div>
-                                            <div className="cat-grid">
-                                                {cat.events.map(ev => (
-                                                    <button key={ev.id} className="event-tile" onClick={() => selectEvent(ev.id)}>
-                                                        <span className="ev-label">{ev.label}</span>
+                                                <div className="add-condition-section">
+                                                    <button className="add-condition-btn">
+                                                        <Plus size={14} /> Add Condition
                                                     </button>
-                                                ))}
+                                                </div>
                                             </div>
                                         </div>
-                                    ))}
+
+                                        <button className="btn-add-trigger">
+                                            <Plus size={16} /> Add Trigger Event
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="modal-actions">
+                                    <button className="btn-cancel" onClick={() => setIsSegmentModalOpen(false)}>Cancel</button>
+                                    <button className="btn-primary" onClick={handleCreateSegment}>Create & Apply</button>
                                 </div>
                             </div>
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
 
             <style jsx>{`
@@ -483,87 +620,97 @@ export default function StepEligibility() {
                 @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
                 .split-layout { display: flex; gap: 24px; align-items: flex-start; }
-                .glass-panel { background: #0f111a; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 24px; }
+                .glass-panel { background: var(--color-bg-panel); border: 1px solid var(--color-border); border-radius: 12px; padding: 24px; }
                 .column-panel { flex: 1; min-height: 400px; }
                 .flex-grow { flex: 1.6; }
                 .relative-container { position: relative; }
 
-                .panel-title { color: #fff; font-size: 16px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; }
-                .panel-subtitle { color: #888; font-size: 12px; margin: 0; }
-                .header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+                .panel-title { color: var(--color-text-primary); font-size: 16px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; }
+                .panel-subtitle { color: var(--color-text-muted); font-size: 12px; margin: 0; }
+                .header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--color-border); }
 
-                .text-cyan { color: #06b6d4; }
-                .text-yellow { color: #facc15; }
+                .text-cyan { color: var(--color-accent-cyan); }
+                .text-yellow { color: var(--color-betika-yellow); }
 
                 /* Common Inputs */
                 .section { margin-bottom: 24px; }
-                .section-label { display: block; font-size: 11px; font-weight: 700; color: #666; margin-bottom: 8px; text-transform: uppercase; }
+                .section-label { display: block; font-size: 11px; font-weight: 700; color: var(--color-text-muted); margin-bottom: 8px; text-transform: uppercase; }
                 .chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
-                .chip { background: rgba(255,255,255,0.03); padding: 8px 16px; border-radius: 6px; font-size: 13px; color: #aaa; cursor: pointer; border: 1px solid transparent; }
-                .chip.active { background: rgba(6,182,212,0.15); color: #06b6d4; border-color: rgba(6,182,212,0.3); }
+                .chip { background: var(--color-bg-card); padding: 8px 16px; border-radius: 6px; font-size: 13px; color: var(--color-text-muted); cursor: pointer; border: 1px solid transparent; }
+                .chip.active { background: rgba(6,182,212,0.15); color: var(--color-accent-cyan); border-color: rgba(6,182,212,0.3); }
                 
                 .platform-toggles { display: flex; gap: 8px; }
-                .p-toggle { flex: 1; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 6px; text-align: center; font-size: 12px; color: #888; cursor: pointer; border: 1px solid transparent; }
-                .p-toggle.active { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2); }
-                .form-select { width: 100%; padding: 10px; background: #000; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; color: #fff; font-size: 13px; }
+                .p-toggle { flex: 1; padding: 10px; background: var(--color-bg-card); border-radius: 6px; text-align: center; font-size: 12px; color: var(--color-text-muted); cursor: pointer; border: 1px solid transparent; }
+                .p-toggle.active { background: var(--color-bg-input-focus); color: var(--color-text-primary); border-color: var(--color-border); }
+                .form-select { width: 100%; padding: 10px; background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text-primary); font-size: 13px; }
 
                 /* Trigger Cards */
                 .triggers-container { display: flex; flex-direction: column; gap: 16px; }
-                .trigger-card { background: #181822; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; }
+                .trigger-card { background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: 10px; overflow: hidden; }
                 
-                .trigger-header { padding: 12px 16px; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
+                .trigger-header { padding: 12px 16px; background: var(--color-bg-input); border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; }
                 .trigger-title { display: flex; align-items: center; gap: 10px; }
                 .trigger-badge { font-size: 10px; font-weight: 800; background: #facc15; color: #000; padding: 2px 6px; border-radius: 4px; }
-                .trigger-name { font-size: 14px; font-weight: 600; color: #fff; }
+                .trigger-name { font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
 
                 .rules-list { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
                 .rule-item { display: flex; align-items: center; gap: 8px; }
-                .rule-badge { font-size: 9px; font-weight: 700; color: #666; width: 24px; text-align: right; }
-                .rule-content { flex: 1; display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
-                .param-label { font-size: 12px; color: #06b6d4; font-weight: 500; min-width: 80px; }
+                .rule-badge { font-size: 9px; font-weight: 700; color: var(--color-text-muted); width: 24px; text-align: right; }
+                .rule-content { flex: 1; display: flex; align-items: center; gap: 8px; background: var(--color-bg-input); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--color-border); }
+                .param-label { font-size: 12px; color: var(--color-accent-cyan); font-weight: 500; min-width: 80px; }
                 
-                .op-mini, .val-mini { background: transparent; border: none; font-size: 12px; color: #ddd; padding: 4px; }
-                .op-mini { width: 110px; color: #888; }
-                .val-mini { flex: 1; border-bottom: 1px dashed rgba(255,255,255,0.2); }
-                .val-mini:focus { outline: none; border-bottom-color: #06b6d4; color: #fff; }
+                .op-mini, .val-mini { background: transparent; border: none; font-size: 12px; color: var(--color-text-secondary); padding: 4px; }
+                .op-mini { width: 110px; color: var(--color-text-muted); }
+                .val-mini { flex: 1; border-bottom: 1px dashed var(--color-border); color: var(--color-text-primary); }
+                .val-mini:focus { outline: none; border-bottom-color: var(--color-accent-cyan); }
                 
-                .icon-btn { background: transparent; border: none; color: #666; cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
-                .icon-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+                .icon-btn { background: transparent; border: none; color: var(--color-text-muted); cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+                .icon-btn:hover { color: var(--color-text-primary); background: var(--color-bg-input-focus); }
                 .icon-btn.danger:hover { color: #f87171; background: rgba(248,113,113,0.1); }
 
                 /* Add Condition Area */
                 .add-condition-section { margin-left: 32px; margin-top: 4px; }
-                .add-condition-btn { background: transparent; border: 1px dashed rgba(255,255,255,0.15); color: #888; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
+                .add-condition-btn { background: transparent; border: 1px dashed var(--color-border); color: var(--color-text-muted); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
                 .add-condition-btn:hover { border-color: #facc15; color: #facc15; background: rgba(250,204,21,0.05); }
 
-                .param-selector-inline { background: #222; border: 1px solid #333; border-radius: 6px; width: fit-content; min-width: 200px; animation: fadeIn 0.1s; }
-                .param-picker-header { padding: 8px 12px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #888; text-transform: uppercase; }
+                .param-selector-inline { background: var(--color-bg-panel); border: 1px solid var(--color-border); border-radius: 6px; width: fit-content; min-width: 200px; animation: fadeIn 0.1s; }
+                .param-picker-header { padding: 8px 12px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--color-text-muted); text-transform: uppercase; }
                 .param-options { padding: 4px; display: flex; flex-direction: column; }
-                .param-opt { background: transparent; border: none; text-align: left; padding: 6px 12px; color: #ddd; font-size: 12px; cursor: pointer; border-radius: 4px; }
-                .param-opt:hover { background: #06b6d4; color: #000; }
+                .param-opt { background: transparent; border: none; text-align: left; padding: 6px 12px; color: var(--color-text-secondary); font-size: 12px; cursor: pointer; border-radius: 4px; }
+                .param-opt:hover { background: var(--color-accent-cyan); color: #000; }
 
-                .logic-connector { text-align: center; font-size: 10px; font-weight: 800; color: #666; margin: 4px 0; position: relative; }
-                .logic-connector::before, .logic-connector::after { content: ''; display: block; height: 8px; width: 1px; background: #333; margin: 0 auto; }
+                .logic-connector { text-align: center; font-size: 10px; font-weight: 800; color: var(--color-text-muted); margin: 4px 0; position: relative; }
+                .logic-connector::before, .logic-connector::after { content: ''; display: block; height: 8px; width: 1px; background: var(--color-border); margin: 0 auto; }
 
-                .add-trigger-btn { width: 100%; background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; color: #aaa; font-size: 13px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-                .add-trigger-btn:hover { background: rgba(255,255,255,0.06); color: #fff; border-color: rgba(255,255,255,0.3); }
+                .add-trigger-btn { width: 100%; background: var(--color-bg-card); border: 1px dashed var(--color-border); padding: 12px; border-radius: 8px; color: var(--color-text-muted); font-size: 13px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+                .add-trigger-btn:hover { background: var(--color-bg-input); color: var(--color-text-primary); border-color: var(--color-text-secondary); }
 
                 /* Modal */
                 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 100; display: flex; align-items: center; justify-content: center; }
-                .event-modal { background: #1a1a24; width: 600px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
-                .modal-header { padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; background: #222; }
-                .modal-header h3 { margin: 0; font-size: 16px; color: #fff; }
-                .modal-header button { background: transparent; border: none; color: #888; cursor: pointer; }
+                .event-modal { background: var(--color-bg-panel); width: 600px; border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+                .modal-header { padding: 16px 24px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; background: var(--color-bg-card); }
+                .modal-header h3 { margin: 0; font-size: 16px; color: var(--color-text-primary); }
+                .modal-header button { background: transparent; border: none; color: var(--color-text-muted); cursor: pointer; }
                 
                 .modal-body { padding: 24px; max-height: 60vh; overflow-y: auto; }
                 .catalog-category { margin-bottom: 24px; }
-                .cat-header { font-size: 11px; font-weight: 700; color: #666; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+                .cat-header { font-size: 11px; font-weight: 700; color: var(--color-text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
                 .cat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-                .event-tile { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; color: #fff; font-size: 13px; cursor: pointer; text-align: center; transition: all 0.2s; }
-                .event-tile:hover { background: #06b6d4; color: #000; border-color: #06b6d4; transform: translateY(-2px); }
+                .event-tile { background: var(--color-bg-card); border: 1px solid var(--color-border); padding: 12px; border-radius: 8px; color: var(--color-text-primary); font-size: 13px; cursor: pointer; text-align: center; transition: all 0.2s; }
+                .event-tile:hover { background: var(--color-accent-cyan); color: #000; border-color: var(--color-accent-cyan); transform: translateY(-2px); }
 
-                .btn-xs { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; color: #888; display: flex; align-items: center; gap: 6px; }
-                .active-mode { background: #06b6d4; color: #000; border-color: #06b6d4; font-weight: 600; }
+                /* Segment Creator */
+                .form-control { margin-bottom: 16px; }
+                .form-control label { display: block; font-size: 12px; color: var(--color-text-muted); margin-bottom: 8px; }
+                .form-control input, .form-control textarea { width: 100%; background: var(--color-bg-input); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 10px; border-radius: 6px; font-size: 13px; outline: none; }
+                .form-control input:focus, .form-control textarea:focus { border-color: var(--color-accent-cyan); }
+                .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+                .btn-cancel { background: transparent; border: 1px solid var(--color-border); color: var(--color-text-muted); padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+                .btn-primary { background: var(--color-accent-cyan); border: none; color: #000; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+                .btn-primary:hover { background: #22d3ee; }
+
+                .btn-xs { background: var(--color-bg-card); border: 1px solid var(--color-border); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--color-text-muted); display: flex; align-items: center; gap: 6px; }
+                .active-mode { background: var(--color-accent-cyan); color: #000; border-color: var(--color-accent-cyan); font-weight: 600; }
                 
                 .advanced-editor { background: #000; padding: 20px; border-radius: 8px; font-family: monospace; font-size: 13px; line-height: 1.6; color: #ccc; min-height: 400px; } 
                 .kwd { color: #c678dd; font-weight: bold; }
@@ -572,7 +719,32 @@ export default function StepEligibility() {
                 .op { color: #56b6c2; }
                 .val { color: #d19a66; }
                 .block-sep { margin: 10px 0; color: #facc15; }
+
+                /* Market Card Styles */
+                .grid-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+                .option-card {
+                    background: var(--color-bg-card);
+                    border: 1px solid var(--color-border);
+                    border-radius: 8px;
+                    padding: 12px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    position: relative;
+                }
+                .option-card:hover { background: var(--color-bg-input-focus); }
+                .option-card.active {
+                    background: rgba(6, 182, 212, 0.1);
+                    border-color: var(--color-accent-cyan);
+                }
+                .flag-large { font-size: 32px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
+                .name { font-size: 12px; font-weight: 500; color: var(--color-text-muted); }
+                .check-icon { position: absolute; top: 6px; right: 6px; color: var(--color-accent-cyan); }
             `}</style>
-        </div>
+        </div >
     );
 }

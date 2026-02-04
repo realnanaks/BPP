@@ -1,9 +1,12 @@
 'use client';
 import { Calendar, Clock, DollarSign, Users, Repeat, AlertCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useWizardContext } from '@/context/WizardContext';
 
 export default function StepSchedule() {
-    const [isRecurring, setIsRecurring] = useState(false);
+    const { state, updateSchedule } = useWizardContext();
+    const { startDate, endDate, isRecurring, recurrence, limits } = state.schedule;
+
+    const toggleRecurring = () => updateSchedule({ isRecurring: !isRecurring });
 
     return (
         <div className="step-container">
@@ -16,16 +19,26 @@ export default function StepSchedule() {
                     <div className="date-grid">
                         <div className="input-group">
                             <label>Start Date & Time</label>
-                            <input type="datetime-local" className="form-input" />
+                            <input
+                                type="datetime-local"
+                                className="form-input"
+                                value={startDate}
+                                onChange={(e) => updateSchedule({ startDate: e.target.value })}
+                            />
                         </div>
                         <div className="arrow-col">→</div>
                         <div className="input-group">
                             <label>End Date & Time</label>
-                            <input type="datetime-local" className="form-input" />
+                            <input
+                                type="datetime-local"
+                                className="form-input"
+                                value={endDate}
+                                onChange={(e) => updateSchedule({ endDate: e.target.value })}
+                            />
                         </div>
                     </div>
 
-                    <div className="recurring-toggle" onClick={() => setIsRecurring(!isRecurring)}>
+                    <div className="recurring-toggle" onClick={toggleRecurring}>
                         <div className={`checkbox ${isRecurring ? 'checked' : ''}`}>
                             {isRecurring && <Repeat size={14} />}
                         </div>
@@ -34,7 +47,11 @@ export default function StepSchedule() {
 
                     {isRecurring && (
                         <div className="recurrence-options">
-                            <select className="form-select">
+                            <select
+                                className="form-select"
+                                value={recurrence.frequency}
+                                onChange={(e) => updateSchedule({ recurrence: { ...recurrence, frequency: e.target.value } })}
+                            >
                                 <option>Daily</option>
                                 <option>Weekly</option>
                                 <option>Monthly</option>
@@ -62,7 +79,13 @@ export default function StepSchedule() {
                                 <span>Total Claims Limit</span>
                             </div>
                             <div className="limit-input-wrapper">
-                                <input type="number" placeholder="Unlimited" className="limit-input" />
+                                <input
+                                    type="number"
+                                    placeholder="Unlimited"
+                                    className="limit-input"
+                                    value={limits.totalClaims}
+                                    onChange={(e) => updateSchedule({ limits: { ...limits, totalClaims: e.target.value } })}
+                                />
                                 <span className="unit">Users</span>
                             </div>
                             <p className="limit-hint">Stop campaign after X claims.</p>
@@ -75,7 +98,12 @@ export default function StepSchedule() {
                                 <span>Per Player Limit</span>
                             </div>
                             <div className="limit-input-wrapper">
-                                <input type="number" defaultValue="1" className="limit-input" />
+                                <input
+                                    type="number"
+                                    className="limit-input"
+                                    value={limits.perPlayer}
+                                    onChange={(e) => updateSchedule({ limits: { ...limits, perPlayer: e.target.value } })}
+                                />
                                 <span className="unit">Claims</span>
                             </div>
                             <p className="limit-hint">Max times a user can claim.</p>
@@ -89,7 +117,13 @@ export default function StepSchedule() {
                             </div>
                             <div className="limit-input-wrapper">
                                 <span className="prefix">€</span>
-                                <input type="number" placeholder="No Limit" className="limit-input pl-6" />
+                                <input
+                                    type="number"
+                                    placeholder="No Limit"
+                                    className="limit-input pl-6"
+                                    value={limits.budget}
+                                    onChange={(e) => updateSchedule({ limits: { ...limits, budget: e.target.value } })}
+                                />
                             </div>
                             <p className="limit-hint">Stop when budget is exhausted.</p>
                         </div>
@@ -102,7 +136,7 @@ export default function StepSchedule() {
                     <div className="summary-icon"><Clock size={20} /></div>
                     <div className="summary-text">
                         <p className="highlight">This promotion will run for <strong>30 Days</strong>.</p>
-                        <p className="sub">From Feb 15, 2024 to Mar 16, 2024 (UTC+3)</p>
+                        <p className="sub">From {startDate || '...'} to {endDate || '...'}</p>
                     </div>
                 </div>
 
@@ -113,7 +147,7 @@ export default function StepSchedule() {
                 @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
                 .form-panel { padding: 40px; }
-                .panel-title { font-size: 20px; margin-bottom: 32px; font-weight: 700; color: #fff; }
+                .panel-title { font-size: 20px; margin-bottom: 32px; font-weight: 700; color: var(--color-text-primary); }
                 
                 .form-section { margin-bottom: 32px; }
                 .section-label { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -124,32 +158,32 @@ export default function StepSchedule() {
                 .input-group label { display: block; margin-bottom: 8px; font-size: 13px; color: var(--color-text-muted); }
                 .form-input {
                     width: 100%;
-                    background: rgba(0,0,0,0.3);
-                    border: 1px solid rgba(255,255,255,0.1);
-                    color: #fff;
+                    background: var(--color-bg-input);
+                    border: 1px solid var(--color-border);
+                    color: var(--color-text-primary);
                     padding: 12px;
                     border-radius: 8px;
                     font-family: inherit;
-                    color-scheme: dark; /* Ensures calendar popup is dark */
+                    color-scheme: light dark;
                 }
-                .form-input:focus { border-color: var(--color-accent-cyan); outline: none; }
+                .form-input:focus { border-color: var(--color-accent-cyan); outline: none; background: var(--color-bg-input-focus); }
                 .arrow-col { padding-bottom: 12px; color: var(--color-text-muted); font-size: 20px; }
 
                 /* Recurrence */
                 .recurring-toggle { display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: none; margin-bottom: 16px; }
                 .checkbox {
                     width: 20px; height: 20px;
-                    border: 2px solid rgba(255,255,255,0.2);
+                    border: 2px solid var(--color-border);
                     border-radius: 4px;
                     display: flex; align-items: center; justify-content: center;
                     transition: all 0.2s;
                 }
                 .checkbox.checked { background: var(--color-accent-cyan); border-color: var(--color-accent-cyan); color: #000; }
-                .recurring-toggle span { font-size: 14px; color: #fff; }
+                .recurring-toggle span { font-size: 14px; color: var(--color-text-primary); }
 
                 .recurrence-options { 
                     margin-left: 32px; 
-                    background: rgba(255,255,255,0.03); 
+                    background: var(--color-bg-card); 
                     padding: 16px; 
                     border-radius: 8px; 
                     display: flex; 
@@ -159,23 +193,23 @@ export default function StepSchedule() {
                 }
                 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
                 
-                .form-select { background: #000; border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 8px; border-radius: 6px; }
+                .form-select { background: var(--color-bg-input); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 8px; border-radius: 6px; }
                 .days-selector { display: flex; gap: 8px; }
-                .day-circle { width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--color-text-muted); cursor: pointer; }
+                .day-circle { width: 28px; height: 28px; border-radius: 50%; background: var(--color-border); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--color-text-muted); cursor: pointer; }
                 .day-circle.active { background: var(--color-accent-cyan); color: #000; font-weight: 700; }
 
-                .section-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 32px 0; }
+                .section-divider { height: 1px; background: var(--color-border); margin: 32px 0; }
 
                 /* Limits Grid */
                 .limits-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-                .limit-card { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; }
-                .limit-header { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 12px; }
+                .limit-card { background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: 12px; padding: 16px; }
+                .limit-header { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 12px; }
                 .text-cyan { color: var(--color-accent-cyan); }
                 .text-purple { color: var(--color-accent-purple); }
                 .text-yellow { color: var(--color-betika-yellow); }
 
-                .limit-input-wrapper { display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px; margin-bottom: 8px; position: relative; }
-                .limit-input { background: transparent; border: none; font-size: 18px; font-weight: 700; color: #fff; width: 100%; outline: none; }
+                .limit-input-wrapper { display: flex; align-items: center; border-bottom: 1px solid var(--color-border); padding-bottom: 8px; margin-bottom: 8px; position: relative; }
+                .limit-input { background: transparent; border: none; font-size: 18px; font-weight: 700; color: var(--color-text-primary); width: 100%; outline: none; }
                 .unit { font-size: 12px; color: var(--color-text-muted); text-transform: uppercase; }
                 .prefix { margin-right: 4px; color: var(--color-text-muted); }
                 .limit-hint { font-size: 11px; color: var(--color-text-muted); margin: 0; }
@@ -184,9 +218,9 @@ export default function StepSchedule() {
                 .summary-box { background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 12px; padding: 16px; display: flex; gap: 16px; align-items: center; margin-top: 16px; }
                 .summary-icon { color: var(--color-accent-cyan); }
                 .summary-text p { margin: 0; }
-                .highlight { font-size: 14px; color: #fff; margin-bottom: 4px; }
+                .highlight { font-size: 14px; color: var(--color-text-primary); margin-bottom: 4px; }
                 .highlight strong { color: var(--color-accent-cyan); }
-                .sub { font-size: 12px; color: rgba(255,255,255,0.7); }
+                .sub { font-size: 12px; color: var(--color-text-secondary); }
             `}</style>
         </div>
     );
