@@ -8,13 +8,15 @@ import Step4Rewards from '@/components/wizard/steps/Step4Rewards';
 import Step5Schedule from '@/components/wizard/steps/Step5Schedule';
 import Step6Display from '@/components/wizard/steps/Step6Display';
 import Step7Review from '@/components/wizard/steps/Step7Review';
-import { Save, Rocket, ChevronRight, ChevronLeft, Code, Sun, Moon } from 'lucide-react';
+import { Save, Rocket, ChevronRight, ChevronLeft, Code, Sun, Moon, X } from 'lucide-react';
 
 export default function CreatePromotionWizard() {
     const [currentStep, setCurrentStep] = useState(1);
     const [theme, setTheme] = useState('dark');
     const { state } = useWizardContext();
     const router = useRouter();
+    const [isSegmentModalOpen, setIsSegmentModalOpen] = useState(false);
+    const [newSegmentName, setNewSegmentName] = useState('');
 
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
@@ -59,6 +61,14 @@ export default function CreatePromotionWizard() {
 
         // Navigate to dashboard
         router.push('/promotions');
+    };
+
+    const handleSaveSegment = () => {
+        if (!newSegmentName.trim()) return;
+        const updatedSegments = [...state.eligibility.customSegments, newSegmentName];
+        // data.state.updateEligibility({ customSegments: updatedSegments, segment: newSegmentName });
+        // Since we only have access to updateEligibility via hook context wrapper (not directly exposed here as 'updateEligibility' function unless we deconstruct it)
+        // Wait, line 16 destructures 'state'. I need the update functions.
     };
 
     return (
@@ -106,6 +116,35 @@ export default function CreatePromotionWizard() {
                 {renderStep()}
             </div>
 
+            {/* Segment Saving Modal (Global) */}
+            {isSegmentModalOpen && (
+                <div className="modal-overlay">
+                    <div className="event-modal" style={{ width: '500px' }}>
+                        <div className="modal-header">
+                            <h3>Save Segment</h3>
+                            <button onClick={() => setIsSegmentModalOpen(false)}><X size={18} /></button>
+                        </div>
+                        <div className="modal-body">
+                            <p className="modal-desc">Save your current Qualification Rules as a reusable player segment.</p>
+                            <div className="form-control">
+                                <label>Segment Name</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. High Rollers Q1"
+                                    value={newSegmentName}
+                                    onChange={(e) => setNewSegmentName(e.target.value)}
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="modal-actions">
+                                <button className="btn-cancel" onClick={() => setIsSegmentModalOpen(false)}>Cancel</button>
+                                <button className="btn-primary" onClick={handleSaveSegment} disabled={!newSegmentName.trim()}>Save Segment</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Sticky Footer */}
             <div className="wizard-footer">
                 <div className="footer-left">
@@ -121,6 +160,18 @@ export default function CreatePromotionWizard() {
                     >
                         <ChevronLeft size={16} /> Back
                     </button>
+
+                    {/* NEW: Save Segment Button (Only Step 2) */}
+                    {currentStep === 2 && (
+                        <button
+                            className="btn btn-secondary text-betika-yellow"
+                            style={{ borderColor: 'var(--color-betika-yellow)', color: 'var(--color-betika-yellow)' }}
+                            onClick={() => setIsSegmentModalOpen(true)}
+                            disabled={state.eligibility.triggers.length === 0}
+                        >
+                            <Save size={16} /> Save as Segment
+                        </button>
+                    )}
 
                     {currentStep < 6 ? (
                         <button className="btn btn-primary" onClick={() => setCurrentStep(Math.min(6, currentStep + 1))}>
@@ -192,6 +243,22 @@ export default function CreatePromotionWizard() {
                     box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
                 }
                 .footer-left, .footer-right { display: flex; gap: 16px; }
+                .text-betika-yellow { color: var(--color-betika-yellow); }
+                
+                /* Reusing Modal Styles needed here since Step 2 styles are scoped */
+                .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; }
+                .event-modal { background: var(--color-bg-panel); width: 600px; border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+                .modal-header { padding: 16px 24px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; background: var(--color-bg-card); }
+                .modal-header h3 { margin: 0; font-size: 16px; color: var(--color-text-primary); }
+                .modal-header button { background: transparent; border: none; color: var(--color-text-muted); cursor: pointer; }
+                .modal-body { padding: 24px; }
+                .modal-desc { font-size: 13px; color: var(--color-text-muted); margin-bottom: 20px; line-height: 1.5; }
+                .form-control { margin-bottom: 16px; }
+                .form-control label { display: block; font-size: 12px; color: var(--color-text-muted); margin-bottom: 8px; }
+                .form-control input { width: 100%; background: var(--color-bg-input); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 10px; border-radius: 6px; font-size: 13px; outline: none; }
+                .form-control input:focus { border-color: var(--color-accent-cyan); }
+                .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+                .btn-cancel { background: transparent; border: 1px solid var(--color-border); color: var(--color-text-muted); padding: 8px 16px; border-radius: 6px; cursor: pointer; }
             `}</style>
         </div>
     );

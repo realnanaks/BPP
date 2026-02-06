@@ -1,5 +1,5 @@
 'use client';
-import { Layers, Zap, Users, Code, Trash2, Plus, X, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { Layers, Zap, Users, Code, Trash2, Plus, X, ChevronDown, CheckCircle2, Save } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useWizardContext, Trigger, Rule } from '@/context/WizardContext';
 
@@ -166,15 +166,17 @@ const OPERATORS = [
 ];
 
 export default function StepEligibility() {
-    const { state, updateEligibility } = useWizardContext();
-    const { markets, channels, triggers } = state.eligibility;
-
-    // Local UI state
-    const [isEventModalOpen, setIsEventModalOpen] = useState(false);
-    const [isSegmentModalOpen, setIsSegmentModalOpen] = useState(false);
-    const [newSegmentName, setNewSegmentName] = useState('');
-    const [customSegments, setCustomSegments] = useState<string[]>([]);
+    const { state, updateEligibility, updateContext } = useWizardContext();
     const [activeTriggerIdForParam, setActiveTriggerIdForParam] = useState<string | null>(null);
+
+    // Context Access
+    const { markets } = state.eligibility;
+    const channels = state.eligibility.channels;
+    const triggers = state.eligibility.triggers;
+    const customSegments = state.eligibility.customSegments || [];
+
+    // Temporary local state for UI management (moved save to Wizard footer)
+    const [isEventModalOpen, setIsEventModalOpen] = useState(false);
     const [isAdvancedMode, setIsAdvancedMode] = useState(false);
 
     // Initial load: Add empty Deposit trigger if none exists (common start point)
@@ -198,15 +200,6 @@ export default function StepEligibility() {
         updateEligibility({ segment: val });
     };
 
-    const handleCreateSegment = () => {
-        if (!newSegmentName.trim()) return;
-        const id = newSegmentName.toLowerCase().replace(/\s+/g, '_');
-        setCustomSegments([...customSegments, id]);
-        setSegment(id);
-        setIsSegmentModalOpen(false);
-        setNewSegmentName('');
-    };
-
     // --- Trigger Logic ---
     const selectEvent = (eventId: string) => {
         updateEligibility({ triggers: [...triggers, { id: `t-${Date.now()}`, eventId, rules: [] }] });
@@ -218,23 +211,21 @@ export default function StepEligibility() {
     };
 
     // --- Rule Logic ---
-    const addRuleToTrigger = (triggerId: string, paramObj: any) => {
+    const addRuleToTrigger = (triggerId: string, param: EventParam) => {
+        const newRule: Rule = {
+            id: Date.now(),
+            param: param.name,
+            operator: 'eq',
+            value: '',
+            type: param.type
+        };
         const updatedTriggers = triggers.map(t => {
             if (t.id === triggerId) {
-                return {
-                    ...t,
-                    rules: [...t.rules, {
-                        id: Date.now(),
-                        param: paramObj.name,
-                        operator: '=',
-                        value: '',
-                        type: paramObj.type
-                    }]
-                };
+                return { ...t, rules: [...t.rules, newRule] };
             }
             return t;
         });
-        updateEligibility({ triggers: updatedTriggers });
+        updateContext({ triggers: updatedTriggers });
         setActiveTriggerIdForParam(null);
     };
 
@@ -373,7 +364,6 @@ export default function StepEligibility() {
                             onChange={(e) => {
                                 const val = e.target.value;
                                 if (val === 'create_new') {
-                                    setIsSegmentModalOpen(true);
                                     return;
                                 }
                                 setSegment(val);
@@ -382,128 +372,114 @@ export default function StepEligibility() {
                             <option value="all">All Registered Players</option>
                             <option value="new">New Players (&lt;30 days)</option>
                             <option value="vip">VIP Tiers 1-3</option>
+
                             {customSegments.map(seg => (
                                 <option key={seg} value={seg}>{seg.replace(/_/g, ' ').toUpperCase()}</option>
                             ))}
-                            <optgroup label="Actions">
-                                <option value="create_new">+ Create New Segment</option>
-                            </optgroup>
                         </select>
+
                     </div>
                 </div>
 
                 {/* RIGHT COLUMN: Triggers */}
                 {/* RIGHT COLUMN: Triggers */}
                 <div className="glass-panel column-panel flex-grow relative-container">
-                    {!customSegments.includes(state.eligibility.segment) ? (
-                        <>
-                            <div className="panel-header">
-                                <div className="header-row">
-                                    <div>
-                                        <h3 className="panel-title"><Zap size={18} className="text-yellow" /> Qualification Rules</h3>
-                                        <p className="panel-subtitle">Event-driven triggers</p>
-                                    </div>
-                                    <div className="sh-actions">
-                                        <button className={`btn-xs ${isAdvancedMode ? 'active-mode' : ''}`} onClick={() => setIsAdvancedMode(!isAdvancedMode)}>
-                                            <Code size={12} /> Advanced
-                                        </button>
-                                    </div>
-                                </div>
+                    <div className="panel-header">
+                        <div className="header-row">
+                            <div>
+                                <h3 className="panel-title"><Zap size={18} className="text-yellow" /> Qualification Rules</h3>
+                                <p className="panel-subtitle">Event-driven triggers</p>
                             </div>
+                            <div className="sh-actions">
+                                <button className={`btn-xs ${isAdvancedMode ? 'active-mode' : ''}`} onClick={() => setIsAdvancedMode(!isAdvancedMode)}>
+                                    <Code size={12} /> Advanced
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
-                            <div className="form-section" style={{ overflowY: 'auto', flex: 1 }}>
-                                {isAdvancedMode ? (
-                                    <div className="advanced-editor">
-                                        <div className="editor-lines">
-                                            <span className="kwd">PROMOTION RULES</span>
-                                            {triggers.map((trigger, idx) => (
-                                                <div key={trigger.id} className="code-block">
-                                                    {idx > 0 && <div className="kwd block-sep">OR</div>}
-                                                    <div><span className="kwd">WHEN</span> EVENT <span className="str">"{getEventLabel(trigger.eventId)}"</span></div>
-                                                    {trigger.rules.map((rule) => (
-                                                        <div key={rule.id} style={{ paddingLeft: 20 }}>
-                                                            <span className="kwd">AND</span> <span className="prop">{rule.param}</span> <span className="op">{rule.operator}</span> <span className="val">"{rule.value}"</span>
-                                                        </div>
-                                                    ))}
+                    <div className="form-section" style={{ overflowY: 'auto', flex: 1 }}>
+                        {isAdvancedMode ? (
+                            <div className="advanced-editor">
+                                <div className="editor-lines">
+                                    <span className="kwd">PROMOTION RULES</span>
+                                    {triggers.map((trigger, idx) => (
+                                        <div key={trigger.id} className="code-block">
+                                            {idx > 0 && <div className="kwd block-sep">OR</div>}
+                                            <div><span className="kwd">WHEN</span> EVENT <span className="str">"{getEventLabel(trigger.eventId)}"</span></div>
+                                            {trigger.rules.map((rule) => (
+                                                <div key={rule.id} style={{ paddingLeft: 20 }}>
+                                                    <span className="kwd">AND</span> <span className="prop">{rule.param}</span> <span className="op">{rule.operator}</span> <span className="val">"{rule.value}"</span>
                                                 </div>
                                             ))}
                                         </div>
-                                    </div>
-                                ) : (
-                                    <div className="triggers-container">
-                                        {triggers.map((trigger, index) => (
-                                            <div key={trigger.id} className="trigger-card">
-                                                <div className="trigger-header">
-                                                    <div className="trigger-title">
-                                                        <span className="trigger-badge">WHEN</span>
-                                                        <span className="trigger-name">{getEventLabel(trigger.eventId)}</span>
-                                                    </div>
-                                                    <button className="icon-btn danger" onClick={() => removeTrigger(trigger.id)}><Trash2 size={14} /></button>
-                                                </div>
-
-                                                <div className="rules-list">
-                                                    {trigger.rules.map((rule) => {
-                                                        return (
-                                                            <div key={rule.id} className="rule-item">
-                                                                <div className="rule-badge">AND</div>
-                                                                <div className="rule-content">
-                                                                    <span className="param-label">{rule.param}</span>
-                                                                    <div className="op-mini-wrapper">
-                                                                        <select className="op-mini" value={rule.operator} onChange={(e) => updateRule(trigger.id, rule.id, 'operator', e.target.value)}>
-                                                                            {OPERATORS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
-                                                                        </select>
-                                                                    </div>
-                                                                    {renderValueInput(rule, trigger.id)}
-                                                                </div>
-                                                                <button className="icon-btn" onClick={() => removeRuleFromTrigger(trigger.id, rule.id)}><X size={12} /></button>
-                                                            </div>
-                                                        );
-                                                    })}
-
-                                                    <div className="add-condition-section">
-                                                        {activeTriggerIdForParam === trigger.id ? (
-                                                            <div className="param-selector-inline">
-                                                                <div className="param-picker-header">
-                                                                    <span>Select Parameter</span>
-                                                                    <button onClick={() => setActiveTriggerIdForParam(null)}><X size={12} /></button>
-                                                                </div>
-                                                                <div className="param-options">
-                                                                    {getParams(trigger.eventId).map(p => (
-                                                                        <button key={p.name} className="param-opt" onClick={() => addRuleToTrigger(trigger.id, p)}>
-                                                                            {p.name}
-                                                                        </button>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <button className="add-condition-btn" onClick={() => setActiveTriggerIdForParam(trigger.id)}>
-                                                                <Plus size={14} /> Add Condition
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {index < triggers.length - 1 && <div className="logic-connector">OR</div>}
-                                            </div>
-                                        ))}
-
-                                        <button className="btn-add-trigger" onClick={() => setIsEventModalOpen(true)}>
-                                            <Plus size={16} /> Add Trigger Event
-                                        </button>
-                                    </div>
-                                )}
+                                    ))}
+                                </div>
                             </div>
-                        </>
-                    ) : (
-                        <div className="empty-state-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--color-text-muted)', textAlign: 'center', padding: '40px' }}>
-                            <Layers size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-                            <h3 style={{ color: 'var(--color-text-primary)', marginBottom: '8px' }}>Segment-Based Qualification</h3>
-                            <p style={{ maxWidth: '300px', lineHeight: '1.5' }}>
-                                You are targeting the <strong style={{ color: 'var(--color-accent-cyan)' }}>{state.eligibility.segment.replace(/_/g, ' ').toUpperCase()}</strong> segment.
-                            </p>
-                            <p style={{ fontSize: '12px', marginTop: '8px' }}>Qualification rules are defined within the segment criteria.</p>
-                        </div>
-                    )}
+                        ) : (
+                            <div className="triggers-container">
+                                {triggers.map((trigger, index) => (
+                                    <div key={trigger.id} className="trigger-card">
+                                        <div className="trigger-header">
+                                            <div className="trigger-title">
+                                                <span className="trigger-badge">WHEN</span>
+                                                <span className="trigger-name">{getEventLabel(trigger.eventId)}</span>
+                                            </div>
+                                            <button className="icon-btn danger" onClick={() => removeTrigger(trigger.id)}><Trash2 size={14} /></button>
+                                        </div>
+
+                                        <div className="rules-list">
+                                            {trigger.rules.map((rule) => {
+                                                return (
+                                                    <div key={rule.id} className="rule-item">
+                                                        <div className="rule-badge">AND</div>
+                                                        <div className="rule-content">
+                                                            <span className="param-label">{rule.param}</span>
+                                                            <div className="op-mini-wrapper">
+                                                                <select className="op-mini" value={rule.operator} onChange={(e) => updateRule(trigger.id, rule.id, 'operator', e.target.value)}>
+                                                                    {OPERATORS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
+                                                                </select>
+                                                            </div>
+                                                            {renderValueInput(rule, trigger.id)}
+                                                        </div>
+                                                        <button className="icon-btn" onClick={() => removeRuleFromTrigger(trigger.id, rule.id)}><X size={12} /></button>
+                                                    </div>
+                                                );
+                                            })}
+
+                                            <div className="add-condition-section">
+                                                {activeTriggerIdForParam === trigger.id ? (
+                                                    <div className="param-selector-inline">
+                                                        <div className="param-picker-header">
+                                                            <span>Select Parameter</span>
+                                                            <button onClick={() => setActiveTriggerIdForParam(null)}><X size={12} /></button>
+                                                        </div>
+                                                        <div className="param-options">
+                                                            {getParams(trigger.eventId).map(p => (
+                                                                <button key={p.name} className="param-opt" onClick={() => addRuleToTrigger(trigger.id, p)}>
+                                                                    {p.name}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <button className="add-condition-btn" onClick={() => setActiveTriggerIdForParam(trigger.id)}>
+                                                        <Plus size={14} /> Add Condition
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {index < triggers.length - 1 && <div className="logic-connector">OR</div>}
+                                    </div>
+                                ))}
+
+                                <button className="btn-add-trigger" onClick={() => setIsEventModalOpen(true)}>
+                                    <Plus size={16} /> Add Trigger Event
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
 
@@ -528,87 +504,6 @@ export default function StepEligibility() {
                                         </div>
                                     </div>
                                 ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Segment Creation Modal */}
-                {isSegmentModalOpen && (
-                    <div className="modal-overlay">
-                        <div className="event-modal" style={{ width: '800px' }}>
-                            <div className="modal-header">
-                                <h3>Create New Player Segment</h3>
-                                <button onClick={() => setIsSegmentModalOpen(false)}><X size={18} /></button>
-                            </div>
-                            <div className="modal-body">
-                                <div className="form-control">
-                                    <label>Segment Name</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. High Rollers Q1"
-                                        value={newSegmentName}
-                                        onChange={(e) => setNewSegmentName(e.target.value)}
-                                    />
-                                </div>
-                                <div className="form-control">
-                                    <label>Description (Optional)</label>
-                                    <textarea placeholder="Describe criteria..." rows={2}></textarea>
-                                </div>
-
-                                {/* Segment Criteria Builder (Reusing Event Strategy) */}
-                                <div className="form-section" style={{ marginTop: '24px' }}>
-                                    <div className="section-header">
-                                        <div className="sh-title">
-                                            <Zap size={18} className="text-yellow" />
-                                            <span>Segment Rules</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="triggers-container">
-                                        {/* Mock Trigger for Visualization matching main UI */}
-                                        <div className="trigger-card">
-                                            <div className="trigger-header">
-                                                <div className="trigger-title">
-                                                    <span className="trigger-badge">WHEN</span>
-                                                    <span className="trigger-name">Deposit</span>
-                                                </div>
-                                                <button className="icon-btn danger"><Trash2 size={14} /></button>
-                                            </div>
-
-                                            <div className="rules-list">
-                                                <div className="rule-item">
-                                                    <div className="rule-badge">AND</div>
-                                                    <div className="rule-content">
-                                                        <span className="param-label">Amount</span>
-                                                        <div className="op-mini-wrapper">
-                                                            <select className="op-mini" defaultValue="gt">
-                                                                <option value="gt">Greater Than</option>
-                                                            </select>
-                                                        </div>
-                                                        <input type="number" className="val-mini input" defaultValue="100" />
-                                                    </div>
-                                                    <button className="icon-btn"><X size={12} /></button>
-                                                </div>
-
-                                                <div className="add-condition-section">
-                                                    <button className="add-condition-btn">
-                                                        <Plus size={14} /> Add Condition
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <button className="btn-add-trigger">
-                                            <Plus size={16} /> Add Trigger Event
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="modal-actions">
-                                    <button className="btn-cancel" onClick={() => setIsSegmentModalOpen(false)}>Cancel</button>
-                                    <button className="btn-primary" onClick={handleCreateSegment}>Create & Apply</button>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -744,6 +639,51 @@ export default function StepEligibility() {
                 .flag-large { font-size: 32px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
                 .name { font-size: 12px; font-weight: 500; color: var(--color-text-muted); }
                 .check-icon { position: absolute; top: 6px; right: 6px; color: var(--color-accent-cyan); }
+                /* Button Refinements */
+                .btn-save-seg {
+                    background: transparent;
+                    color: var(--color-betika-yellow);
+                    border: 1px solid var(--color-betika-yellow);
+                    padding: 6px 12px;
+                    border-radius: 6px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    transition: all 0.2s;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }
+                .btn-save-seg:hover {
+                    background: var(--color-betika-yellow);
+                    color: #000;
+                    box-shadow: 0 0 8px rgba(250, 204, 21, 0.4);
+                }
+
+                .btn-add-trigger {
+                    width: 100%;
+                    padding: 14px;
+                    border: 1px dashed var(--color-border);
+                    border-radius: 12px;
+                    background: rgba(255, 255, 255, 0.02);
+                    color: var(--color-text-muted);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    margin-top: 16px;
+                    font-size: 13px;
+                    font-weight: 500;
+                }
+                .btn-add-trigger:hover {
+                    border-color: var(--color-accent-cyan);
+                    color: var(--color-accent-cyan);
+                    background: rgba(6, 182, 212, 0.05);
+                    transform: translateY(-1px);
+                }
             `}</style>
         </div >
     );

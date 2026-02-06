@@ -36,6 +36,7 @@ export interface WizardState {
         markets: string[];
         channels: string[]; // platforms
         segment: string;
+        customSegments: string[];
         triggers: Trigger[];
     };
     rewards: {
@@ -87,6 +88,7 @@ const defaultState: WizardState = {
         markets: ['ke'],
         channels: ['mobile', 'app'],
         segment: 'all',
+        customSegments: [],
         triggers: []
     },
     rewards: {

@@ -99,7 +99,7 @@ export default function PromotionsList() {
                 </div>
                 <div className="header-actions">
                     <button className="btn btn-secondary icon-only"><RefreshCw size={18} /></button>
-                    <Link href="/promotions/create" className="btn btn-primary">
+                    <Link href="/promotions/create" className="btn btn-primary btn-new-promo">
                         <Plus size={18} /> New Promotion
                     </Link>
                 </div>
@@ -427,6 +427,20 @@ export default function PromotionsList() {
         }
         .page-btn.disabled { opacity: 0.5; cursor: not-allowed; }
         .page-btn:not(.disabled):hover { background: rgba(255,255,255,0.1); }
+
+        /* Button Consistency: Ghost Yellow Style (Global due to Link component scoping issues) */
+        :global(.btn-new-promo) {
+            background: transparent !important;
+            color: var(--color-betika-yellow) !important;
+            border: 1px solid var(--color-betika-yellow) !important;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        :global(.btn-new-promo:hover) {
+            background: var(--color-betika-yellow) !important;
+            color: #000 !important;
+            box-shadow: 0 0 10px rgba(242, 214, 65, 0.3);
+        }
       `}</style>
         </div>
     );
