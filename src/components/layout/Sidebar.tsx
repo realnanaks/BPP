@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Megaphone, ShieldCheck, Beaker, BarChart3, Settings, LogOut, ChevronRight, Layers, Users, TrendingUp, Gift, LayoutGrid, FlaskConical } from 'lucide-react';
+import { LayoutDashboard, Megaphone, ShieldCheck, Beaker, BarChart3, Settings, LogOut, ChevronRight, Layers, Users, TrendingUp, Gift, LayoutGrid, FlaskConical, Shield } from 'lucide-react';
 import clsx from 'clsx';
 
 const menuItems = [
@@ -112,6 +112,29 @@ export default function Sidebar() {
             <span className="item-label" style={{ flex: 1 }}>Promotions</span>
             {isItemActive('/predictions/promotions') && <ChevronRight size={16} color="#000" style={{ opacity: 0.5 }} />}
           </Link>
+
+          <Link
+            href="/predictions/responsible-gambling"
+            className="nav-item"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              textDecoration: 'none',
+              marginBottom: '4px',
+              transition: 'all 0.2s ease',
+              backgroundColor: isItemActive('/predictions/responsible-gambling') ? '#F2D641' : 'transparent',
+              color: isItemActive('/predictions/responsible-gambling') ? '#000' : '#a1a1aa',
+              fontWeight: isItemActive('/predictions/responsible-gambling') ? 700 : 500,
+            }}
+          >
+            <Shield size={20} strokeWidth={isItemActive('/predictions/responsible-gambling') ? 2.5 : 2} color={isItemActive('/predictions/responsible-gambling') ? '#000' : '#a1a1aa'} />
+            <span className="item-label" style={{ flex: 1 }}>Responsible Gambling</span>
+            {isItemActive('/predictions/responsible-gambling') && <ChevronRight size={16} color="#000" style={{ opacity: 0.5 }} />}
+          </Link>
+
         </div>
 
         <p className="nav-title mt-6">SYSTEM</p>
@@ -251,6 +274,6 @@ export default function Sidebar() {
         }
         .logout:hover { background: #27272a; color: #fff; }
       `}</style>
-    </aside>
+    </aside >
   );
 }
