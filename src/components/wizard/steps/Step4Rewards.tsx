@@ -1,14 +1,71 @@
 'use client';
-import { Gift, Coins, CreditCard, Ticket, Percent, DollarSign, ArrowRight, Plus, Trash2, Layers, Calendar, Users, AlertCircle, List } from 'lucide-react';
+import { Gift, Coins, CreditCard, Ticket, Percent, DollarSign, ArrowRight, Plus, Trash2, Layers, Calendar, Users, AlertCircle, List, AlertTriangle } from 'lucide-react';
 import { useWizardContext, TierRule } from '@/context/WizardContext';
+import { useState, useEffect } from 'react';
 
 export default function StepRewards() {
     const { state, updateRewards } = useWizardContext();
     const { type: rewardType, calcType, matrixDimension, tiers, simpleConfig, wagering } = state.rewards;
+    const { markets } = state.eligibility;
+
+    const [countryLimits, setCountryLimits] = useState<Record<string, number>>({});
+    const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
     const setRewardType = (val: string) => updateRewards({ type: val });
     const setCalcType = (val: string) => updateRewards({ calcType: val });
     const setMatrixDimension = (val: string) => updateRewards({ matrixDimension: val });
+
+    // Load Country Limits from Settings
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('settings_countries');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    const limits: Record<string, number> = {};
+                    if (Array.isArray(parsed)) {
+                        parsed.forEach((c: any) => {
+                            if (c.code) limits[c.code.toUpperCase()] = Number(c.promoLimit) || 0;
+                        });
+                        setCountryLimits(limits);
+                    }
+                } catch (e) {
+                    console.error("Failed to load country limits", e);
+                }
+            }
+        }
+    }, []);
+
+    // Validate Config against Limits
+    useEffect(() => {
+        const errors: string[] = [];
+        const selectedMarkets = markets || [];
+
+        selectedMarkets.forEach(m => {
+            const code = m.toUpperCase();
+            const limit = countryLimits[code];
+
+            if (limit && limit > 0) {
+                if (calcType === 'simple') {
+                    const currentCap = Number(simpleConfig.cap) || 0;
+                    if (currentCap > limit) {
+                        errors.push(`Reward Cap (${currentCap}) exceeds the limit for ${code} (${limit})`);
+                    }
+                } else if (calcType === 'tiered') {
+                    tiers.forEach(tier => {
+                        const tierCap = Number(tier.cap) || 0;
+                        if (tierCap > limit) {
+                            errors.push(`Tier value (${tierCap}) exceeds the limit for ${code} (${limit})`);
+                        }
+                    });
+                }
+            }
+        });
+
+        // Dedup errors
+        setValidationErrors([...new Set(errors)]);
+    }, [simpleConfig, tiers, calcType, markets, countryLimits]);
+
 
     const addTier = () => {
         updateRewards({
@@ -36,7 +93,7 @@ export default function StepRewards() {
     // Helper to switch matrix type
     const toggleMatrixMode = (mode: string) => {
         setMatrixDimension(mode);
-        // Reset tiers for demo purposes when switching (optional, maybe better not to wipe data in real app, but following original logic for now)
+        // Reset tiers for demo purposes when switching
         if (mode === 'selections') {
             updateRewards({
                 tiers: [
@@ -57,6 +114,19 @@ export default function StepRewards() {
         <div className="step-container">
             <div className="glass-panel form-panel">
                 <h2 className="panel-title">Reward Configuration</h2>
+
+                {/* Validation Warning Box */}
+                {validationErrors.length > 0 && (
+                    <div className="validation-warning">
+                        <div className="vw-header">
+                            <AlertTriangle size={18} className="text-warning" />
+                            <span>Configuration Limit Exceeded</span>
+                        </div>
+                        <ul className="vw-list">
+                            {validationErrors.map((err, i) => <li key={i}>{err}</li>)}
+                        </ul>
+                    </div>
+                )}
 
                 {/* 1. Reward Type Selection */}
                 <div className="form-section">
@@ -260,6 +330,14 @@ export default function StepRewards() {
                 .form-panel { padding: 40px; background: var(--color-bg-panel); border: 1px solid var(--color-border); border-radius: 12px; }
                 .panel-title { font-size: 20px; margin-bottom: 32px; font-weight: 700; color: var(--color-text-primary); }
                 .section-label { display: block; font-size: 14px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+                /* Validation Warning */
+                .validation-warning { background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 24px; animation: keyframe 0.3s ease; }
+                .vw-header { display: flex; align-items: center; gap: 8px; font-weight: 700; color: #f87171; margin-bottom: 8px; font-size: 14px; }
+                .vw-list { margin: 0; padding-left: 24px; color: #fecaca; font-size: 13px; }
+                .vw-list li { margin-bottom: 4px; }
+                
+                .text-warning { color: #f87171; }
 
                 /* Reward Grid */
                 .rewards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
