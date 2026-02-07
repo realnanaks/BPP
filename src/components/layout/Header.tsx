@@ -1,5 +1,6 @@
 'use client';
-import { Bell, Search } from 'lucide-react';
+import { Bell, Search, Settings } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Header() {
   return (
@@ -10,6 +11,11 @@ export default function Header() {
       </div>
 
       <div className="actions">
+        {/* Direct Settings Link */}
+        <Link href="/settings" className="icon-btn" aria-label="Settings">
+          <Settings size={20} />
+        </Link>
+
         <button className="icon-btn" aria-label="Notifications">
           <Bell size={20} />
           <span className="badge" />
@@ -68,7 +74,7 @@ export default function Header() {
         .actions {
           display: flex;
           align-items: center;
-          gap: 24px;
+          gap: 16px;
         }
 
         .icon-btn {
@@ -79,6 +85,9 @@ export default function Header() {
           position: relative;
           padding: 8px;
           border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           transition: background 0.2s;
         }
         .icon-btn:hover {
@@ -101,6 +110,9 @@ export default function Header() {
           display: flex;
           align-items: center;
           gap: 12px;
+          margin-left: 8px;
+          padding-left: 16px;
+          border-left: 1px solid rgba(255,255,255,0.1);
         }
         .avatar {
           width: 36px;

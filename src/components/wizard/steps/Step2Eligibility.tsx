@@ -3,6 +3,16 @@ import { Layers, Zap, Users, Code, Trash2, Plus, X, ChevronDown, CheckCircle2, S
 import { useState, useEffect } from 'react';
 import { useWizardContext, Trigger, Rule } from '@/context/WizardContext';
 
+// Robust flag emoji generator
+const getFlagEmoji = (countryCode: string) => {
+    if (!countryCode) return '🌐';
+    const codePoints = countryCode
+        .toUpperCase()
+        .split('')
+        .map(char => 127397 + char.charCodeAt(0));
+    return String.fromCodePoint(...codePoints);
+};
+
 // Extensive Event Catalog for the Event-Driven Engine
 
 interface EventParam {
@@ -168,6 +178,8 @@ const OPERATORS = [
 export default function StepEligibility() {
     const { state, updateEligibility } = useWizardContext();
     const [activeTriggerIdForParam, setActiveTriggerIdForParam] = useState<string | null>(null);
+    const [availableMarkets, setAvailableMarkets] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     // Context Access
     const { markets } = state.eligibility;
@@ -184,6 +196,48 @@ export default function StepEligibility() {
         if (triggers.length === 0) {
             updateEligibility({ triggers: [{ id: 't-init', eventId: 'deposit', rules: [] }] });
         }
+    }, []);
+
+    // Load settings with fallback
+    useEffect(() => {
+        const loadMarkets = () => {
+            if (typeof window === 'undefined') return;
+
+            const saved = localStorage.getItem('settings_countries');
+
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        setAvailableMarkets(parsed.map((c: any) => ({
+                            id: c.code,
+                            name: c.name
+                        })));
+                        setIsLoading(false);
+                        return;
+                    }
+                } catch (e) {
+                    console.error("Failed to parse settings_countries", e);
+                }
+            }
+
+            // Fallback if nothing saved - use a default list to avoid empty state on first load
+            setAvailableMarkets([
+                { id: 'KE', name: 'Kenya' },
+                { id: 'GH', name: 'Ghana' },
+                { id: 'NG', name: 'Nigeria' },
+                { id: 'ET', name: 'Ethiopia' },
+                { id: 'TZ', name: 'Tanzania' },
+                { id: 'UG', name: 'Uganda' },
+            ]);
+            setIsLoading(false);
+        };
+
+        loadMarkets();
+
+        // Optional: Listen for storage events (if settings changed in another tab)
+        window.addEventListener('storage', loadMarkets);
+        return () => window.removeEventListener('storage', loadMarkets);
     }, []);
 
     const toggleMarket = (id: string) => {
@@ -323,26 +377,30 @@ export default function StepEligibility() {
 
                     <div className="section">
                         <label className="section-label">Markets</label>
-                        <div className="grid-options">
-                            {[
-                                { id: 'ke', name: 'Kenya', flag: '🇰🇪' },
-                                { id: 'gh', name: 'Ghana', flag: '🇬🇭' },
-                                { id: 'zm', name: 'Zambia', flag: '🇿🇲' },
-                                { id: 'et', name: 'Ethiopia', flag: '🇪🇹' },
-                                { id: 'tz', name: 'Tanzania', flag: '🇹🇿' },
-                                { id: 'ug', name: 'Uganda', flag: '🇺🇬' },
-                            ].map((m) => (
-                                <div
-                                    key={m.id}
-                                    className={`option-card market-card ${markets.includes(m.id) ? 'active' : ''}`}
-                                    onClick={() => toggleMarket(m.id)}
-                                >
-                                    <span className="flag-large">{m.flag}</span>
-                                    <span className="name">{m.name}</span>
-                                    {markets.includes(m.id) && <CheckCircle2 size={16} className="check-icon" />}
-                                </div>
-                            ))}
-                        </div>
+                        {isLoading ? (
+                            <div style={{ padding: '20px', textAlign: 'center', color: '#888', fontSize: '13px' }}>Loading markets...</div>
+                        ) : (
+                            <div className="grid-options">
+                                {availableMarkets.length === 0 ? (
+                                    <div style={{ padding: '20px', textAlign: 'center', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', fontSize: '13px', color: '#ccc' }}>
+                                        No countries configured. <br /> Please go to Settings to add markets.
+                                    </div>
+                                ) : availableMarkets.map((m) => {
+                                    const isActive = markets.some(mk => mk.toLowerCase() === m.id.toLowerCase());
+                                    return (
+                                        <div
+                                            key={m.id}
+                                            className={`option-card market-card ${isActive ? 'active' : ''}`}
+                                            onClick={() => toggleMarket(m.id)}
+                                        >
+                                            <span className="flag-large">{getFlagEmoji(m.id)}</span>
+                                            <span className="name">{m.name}</span>
+                                            {isActive && <CheckCircle2 size={16} className="check-icon" />}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
 
                     <div className="section">
@@ -398,7 +456,7 @@ export default function StepEligibility() {
                         </div>
                     </div>
 
-                    <div className="form-section" style={{ overflowY: 'auto', flex: 1 }}>
+                    <div className="form-section form-scrollable">
                         {isAdvancedMode ? (
                             <div className="advanced-editor">
                                 <div className="editor-lines">
@@ -519,6 +577,10 @@ export default function StepEligibility() {
                 .column-panel { flex: 1; min-height: 400px; }
                 .flex-grow { flex: 1.6; }
                 .relative-container { position: relative; }
+
+                .form-scrollable { overflow-y: auto; flex: 1; scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }
+                .form-scrollable::-webkit-scrollbar { width: 6px; }
+                .form-scrollable::-webkit-scrollbar-thumb { background-color: var(--color-border); border-radius: 3px; }
 
                 .panel-title { color: var(--color-text-primary); font-size: 16px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; }
                 .panel-subtitle { color: var(--color-text-muted); font-size: 12px; margin: 0; }

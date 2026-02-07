@@ -1,16 +1,78 @@
 'use client';
-import { Globe, Smartphone, Monitor, Users, CheckCircle2, Plus } from 'lucide-react';
+import { Globe, Smartphone, Monitor, Users, CheckCircle2, Plus, RefreshCw } from 'lucide-react';
 import { useWizardContext } from '@/context/WizardContext';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+
+// Robust flag emoji generator
+const getFlagEmoji = (countryCode: string) => {
+    if (!countryCode) return '�';
+    const codePoints = countryCode
+        .toUpperCase()
+        .split('')
+        .map(char => 127397 + char.charCodeAt(0));
+    return String.fromCodePoint(...codePoints);
+};
 
 export default function StepScope() {
     const { state, updateEligibility } = useWizardContext();
     const { markets, channels: platforms, segment } = state.eligibility;
     const router = useRouter();
 
+    const [availableMarkets, setAvailableMarkets] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Load settings with fallback
+    useEffect(() => {
+        const loadMarkets = () => {
+            if (typeof window === 'undefined') return;
+
+            const saved = localStorage.getItem('settings_countries');
+
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        setAvailableMarkets(parsed.map((c: any) => ({
+                            id: c.code,
+                            name: c.name
+                        })));
+                        setIsLoading(false);
+                        return;
+                    }
+                } catch (e) {
+                    console.error("Failed to parse settings_countries", e);
+                }
+            }
+
+            // Fallback if nothing saved - use a default list to avoid empty state on first load
+            setAvailableMarkets([
+                { id: 'KE', name: 'Kenya' },
+                { id: 'GH', name: 'Ghana' },
+                { id: 'NG', name: 'Nigeria' },
+                { id: 'ET', name: 'Ethiopia' },
+                { id: 'TZ', name: 'Tanzania' },
+                { id: 'UG', name: 'Uganda' },
+            ]);
+            setIsLoading(false);
+        };
+
+        loadMarkets();
+
+        // Optional: Listen for storage events (if settings changed in another tab)
+        window.addEventListener('storage', loadMarkets);
+        return () => window.removeEventListener('storage', loadMarkets);
+    }, []);
+
     const toggleMarket = (id: string) => {
-        if (markets.includes(id)) updateEligibility({ markets: markets.filter(m => m !== id) });
-        else updateEligibility({ markets: [...markets, id] });
+        const target = id.toUpperCase();
+        const current = markets.map(m => m.toUpperCase());
+
+        if (current.includes(target)) {
+            updateEligibility({ markets: markets.filter(m => m.toUpperCase() !== target) });
+        } else {
+            updateEligibility({ markets: [...markets, target] });
+        }
     };
 
     const togglePlatform = (id: string) => {
@@ -21,7 +83,6 @@ export default function StepScope() {
     const handleSegmentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
         if (val === 'create_new') {
-            // Mock redirect for creating new segment
             router.push('/segments/create');
             return;
         }
@@ -35,27 +96,34 @@ export default function StepScope() {
 
                 {/* Markets Section */}
                 <div className="form-section">
-                    <label className="section-label"><Globe size={16} /> Target Markets</label>
-                    <div className="grid-options">
-                        {[
-                            { id: 'ke', name: 'Kenya', flag: '🇰🇪' },
-                            { id: 'gh', name: 'Ghana', flag: '🇬🇭' },
-                            { id: 'ng', name: 'Nigeria', flag: '🇳🇬' },
-                            { id: 'et', name: 'Ethiopia', flag: '🇪🇹' },
-                            { id: 'tz', name: 'Tanzania', flag: '🇹🇿' },
-                            { id: 'ug', name: 'Uganda', flag: '🇺🇬' },
-                        ].map((m) => (
-                            <div
-                                key={m.id}
-                                className={`option-card market-card ${markets.includes(m.id) ? 'active' : ''}`}
-                                onClick={() => toggleMarket(m.id)}
-                            >
-                                <span className="flag-large">{m.flag}</span>
-                                <span className="name">{m.name}</span>
-                                {markets.includes(m.id) && <CheckCircle2 size={16} className="check-icon" />}
-                            </div>
-                        ))}
+                    <div className="section-header">
+                        <label className="section-label"><Globe size={16} /> Target Markets</label>
                     </div>
+
+                    {isLoading ? (
+                        <div className="loading-state">Loading markets...</div>
+                    ) : (
+                        <div className="grid-options">
+                            {availableMarkets.length === 0 ? (
+                                <div className="empty-state">
+                                    No countries configured. Please go to Settings > Countries & Limits.
+                                </div>
+                            ) : availableMarkets.map((m) => {
+                                const isActive = markets.some(mk => mk.toUpperCase() === m.id.toUpperCase());
+                                return (
+                                    <div
+                                        key={m.id}
+                                        className={`option-card market-card ${isActive ? 'active' : ''}`}
+                                        onClick={() => toggleMarket(m.id)}
+                                    >
+                                        <span className="flag-large">{getFlagEmoji(m.id)}</span>
+                                        <span className="name">{m.name}</span>
+                                        {isActive && <CheckCircle2 size={16} className="check-icon" />}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
 
                 {/* Platform Section */}
@@ -121,7 +189,8 @@ export default function StepScope() {
                 .panel-title { font-size: 20px; margin-bottom: 32px; font-weight: 700; color: var(--color-text-primary); }
 
                 .form-section { margin-bottom: 32px; }
-                .section-label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--color-text-secondary); margin-bottom: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+                .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+                .section-label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--color-text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; }
 
                 .grid-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
                 .grid-options.three-col { grid-template-columns: repeat(3, 1fr); }
@@ -176,6 +245,10 @@ export default function StepScope() {
                 
                 .info-box { font-size: 13px; color: var(--color-text-muted); display: flex; align-items: center; gap: 8px; }
                 .info-box strong { color: var(--color-betika-yellow); }
+                
+                .loading-state, .empty-state {
+                    padding: 24px; text-align: center; color: var(--color-text-secondary); background: rgba(255,255,255,0.03); border-radius: 8px; font-size: 14px;
+                }
             `}</style>
         </div>
     );

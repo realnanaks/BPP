@@ -105,9 +105,7 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
           <p className="nav-title mt-6">SYSTEM</p>
           <div className="nav-list">
-            <Link href="/settings" className="nav-item" onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', textDecoration: 'none', color: '#a1a1aa' }}>
-              <Settings size={20} /> <span className="item-label">Settings</span>
-            </Link>
+            {/* Settings moved to Header */}
           </div>
 
         </nav>
