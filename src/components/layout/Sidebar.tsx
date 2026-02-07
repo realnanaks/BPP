@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Megaphone, ShieldCheck, Beaker, BarChart3, Settings, LogOut, ChevronRight, Layers } from 'lucide-react';
+import { LayoutDashboard, Megaphone, ShieldCheck, Beaker, BarChart3, Settings, LogOut, ChevronRight, Layers, Users, TrendingUp } from 'lucide-react';
 import clsx from 'clsx';
 
 const menuItems = [
@@ -64,6 +64,53 @@ export default function Sidebar() {
               </Link>
             )
           })}
+        </div>
+
+        <p className="nav-title mt-6">PREDICTIONS</p>
+        <div className="nav-list">
+          <Link
+            href="/predictions/churn"
+            className="nav-item"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              textDecoration: 'none',
+              marginBottom: '4px',
+              transition: 'all 0.2s ease',
+              backgroundColor: isItemActive('/predictions/churn') ? '#F2D641' : 'transparent',
+              color: isItemActive('/predictions/churn') ? '#000' : '#a1a1aa',
+              fontWeight: isItemActive('/predictions/churn') ? 700 : 500,
+            }}
+          >
+            <Users size={20} strokeWidth={isItemActive('/predictions/churn') ? 2.5 : 2} color={isItemActive('/predictions/churn') ? '#000' : '#a1a1aa'} />
+            <span className="item-label" style={{ flex: 1 }}>Churn</span>
+            {isItemActive('/predictions/churn') && <ChevronRight size={16} color="#000" style={{ opacity: 0.5 }} />}
+          </Link>
+
+          <Link
+            href="/predictions/promotions"
+            className="nav-item"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              textDecoration: 'none',
+              marginBottom: '4px',
+              transition: 'all 0.2s ease',
+              backgroundColor: isItemActive('/predictions/promotions') ? '#F2D641' : 'transparent',
+              color: isItemActive('/predictions/promotions') ? '#000' : '#a1a1aa',
+              fontWeight: isItemActive('/predictions/promotions') ? 700 : 500,
+            }}
+          >
+            <TrendingUp size={20} strokeWidth={isItemActive('/predictions/promotions') ? 2.5 : 2} color={isItemActive('/predictions/promotions') ? '#000' : '#a1a1aa'} />
+            <span className="item-label" style={{ flex: 1 }}>Promotions</span>
+            {isItemActive('/predictions/promotions') && <ChevronRight size={16} color="#000" style={{ opacity: 0.5 }} />}
+          </Link>
         </div>
 
         <p className="nav-title mt-6">SYSTEM</p>
