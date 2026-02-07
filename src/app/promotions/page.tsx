@@ -245,22 +245,28 @@ export default function PromotionsList() {
         .search-group {
             position: relative;
             width: 320px;
-        }
-        .search-icon {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--color-text-secondary);
-        }
-        .search-input {
-            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.1);
-            color: #fff;
-            padding: 10px 10px 10px 40px;
             border-radius: 8px;
+            padding: 8px 12px;
+            transition: border-color 0.2s;
+        }
+        .search-group:focus-within { border-color: var(--color-accent-purple); }
+        .search-icon {
+            color: var(--color-text-secondary);
+            flex-shrink: 0;
+        }
+        .search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #fff;
+            padding: 0;
             outline: none;
+            min-width: 0;
         }
         .search-input:focus { border-color: var(--color-accent-purple); }
 

@@ -297,8 +297,8 @@ export default function Dashboard() {
         .list-actions { display: flex; gap: 12px; }
         
         .search-bar { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 12px; display: flex; align-items: center; gap: 8px; width: 250px; }
-        .search-bar input { background: transparent; border: none; font-size: 13px; color: #fff; width: 100%; outline: none; }
-        .search-bar svg { color: #666; }
+        .search-bar input { flex: 1; background: transparent; border: none; font-size: 13px; color: #fff; outline: none; padding: 0; min-width: 0; }
+        .search-bar svg { color: #666; flex-shrink: 0; }
         
         .icon-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #aaa; cursor: pointer; }
 
