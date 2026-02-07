@@ -106,7 +106,7 @@ export default function StepScope() {
                         <div className="grid-options">
                             {availableMarkets.length === 0 ? (
                                 <div className="empty-state">
-                                    No countries configured. Please go to Settings > Countries & Limits.
+                                    No countries configured. Please go to Settings &gt; Countries & Limits.
                                 </div>
                             ) : availableMarkets.map((m) => {
                                 const isActive = markets.some(mk => mk.toUpperCase() === m.id.toUpperCase());
