@@ -684,6 +684,17 @@ export default function StepEligibility() {
                     background: rgba(6, 182, 212, 0.05);
                     transform: translateY(-1px);
                 }
+
+                @media (max-width: 900px) {
+                    .split-layout { flex-direction: column; }
+                    .column-panel { width: 100%; min-height: auto; }
+                    .grid-options { grid-template-columns: repeat(2, 1fr); }
+                    .cat-grid { grid-template-columns: repeat(2, 1fr); }
+                }
+                @media (max-width: 600px) {
+                    .header-row { flex-direction: column; gap: 12px; align-items: flex-start; }
+                    .cat-grid { grid-template-columns: 1fr; }
+                }
             `}</style>
         </div >
     );

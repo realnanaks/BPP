@@ -447,6 +447,17 @@ export default function PromotionsList() {
             color: #000 !important;
             box-shadow: 0 0 10px rgba(242, 214, 65, 0.3);
         }
+
+        @media (max-width: 768px) {
+            .page-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+            .header-actions { width: 100%; justify-content: flex-start; }
+            .toolbar { flex-direction: column; gap: 16px; }
+            .search-group { width: 100%; }
+            .filter-group { flex-wrap: wrap; }
+            .tabs { width: 100%; overflow-x: auto; }
+            .grid-container { overflow-x: auto; }
+            .data-table { min-width: 800px; } /* Force scroll */
+        }
       `}</style>
         </div>
     );

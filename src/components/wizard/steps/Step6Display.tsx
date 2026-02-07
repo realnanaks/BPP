@@ -458,6 +458,15 @@ export default function StepDisplay() {
                 .web-tnc-section { padding: 32px; border-top: 1px solid #222; }
                 .web-tnc-section h3 { font-size: 14px; margin-bottom: 16px; color: #888; text-transform: uppercase; }
                 .tnc-text p { font-size: 12px; color: #666; margin-bottom: 8px; line-height: 1.5; }
+
+                @media (max-width: 768px) {
+                    .main-layout { grid-template-columns: 1fr; gap: 24px; }
+                    .panel-header-row { flex-direction: column; align-items: flex-start; gap: 16px; }
+                    .mode-toggle { width: 100%; display: flex; }
+                    .mode-btn { flex: 1; text-align: center; }
+                    .preview-panel { margin-top: 24px; }
+                    .phone-mockup { transform: scale(0.9); transform-origin: top center; }
+                }
             `}</style>
         </div>
     );
