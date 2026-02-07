@@ -37,7 +37,12 @@ export default function Dashboard() {
       setActivePromotions(mocks);
       localStorage.setItem('saved_promotions', JSON.stringify(mocks));
     } else {
-      setActivePromotions(saved);
+      // Normalize data to ensure 'claims' exists (handle legacy vs new structure)
+      const normalized = saved.map((p: any) => ({
+        ...p,
+        claims: p.claims !== undefined ? p.claims : (p.stats?.claims || 0)
+      }));
+      setActivePromotions(normalized);
     }
   }, []);
 

@@ -84,7 +84,14 @@ export default function PromotionsList() {
 
     // Close menu when clicking outside
     useEffect(() => {
-        const handleClickOutside = () => setActiveMenuId(null);
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Element;
+            // Ignore clicks on the trigger button itself or inside the menu
+            if (target.closest('.btn-icon') || target.closest('.action-menu')) {
+                return;
+            }
+            setActiveMenuId(null);
+        };
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
@@ -178,10 +185,32 @@ export default function PromotionsList() {
                                             <Link href={`/promotions/${promo.id}`} className="menu-item">
                                                 <Eye size={14} /> View Details
                                             </Link>
-                                            <button className="menu-item"><Edit size={14} /> Edit Config</button>
+                                            <Link href={`/promotions/create?edit=${promo.id}`} className="menu-item">
+                                                <Edit size={14} /> Edit Config
+                                            </Link>
                                             <button className="menu-item"><Copy size={14} /> Duplicate</button>
                                             <div className="menu-divider" />
-                                            <button className="menu-item danger"><Trash2 size={14} /> Deactivate</button>
+                                            <button
+                                                className="menu-item danger"
+                                                onClick={() => {
+                                                    if (confirm('Are you sure you want to deactivate this promotion?')) {
+                                                        const saved = JSON.parse(localStorage.getItem('saved_promotions') || '[]');
+                                                        const updated = saved.map((p: any) =>
+                                                            p.id === promo.id ? { ...p, status: 'Arranged' } : p // 'Arranged' or 'Inactive'? Using 'Stopped' or 'Inactive'
+                                                        );
+                                                        // Actually, let's set status to 'Paused' or 'Inactive'
+                                                        const finalUpdated = saved.map((p: any) =>
+                                                            p.id === promo.id ? { ...p, status: 'Paused' } : p
+                                                        );
+
+                                                        localStorage.setItem('saved_promotions', JSON.stringify(finalUpdated));
+                                                        setPromotions(finalUpdated);
+                                                        setActiveMenuId(null);
+                                                    }
+                                                }}
+                                            >
+                                                <Trash2 size={14} /> Deactivate
+                                            </button>
                                         </div>
                                     )}
                                 </td>
@@ -375,7 +404,7 @@ export default function PromotionsList() {
             position: absolute;
             right: 0;
             top: 100%;
-            width: 160px;
+            width: 200px;
             background: #1a1a24;
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 8px;
@@ -384,20 +413,47 @@ export default function PromotionsList() {
             box-shadow: 0 4px 12px rgba(0,0,0,0.4);
             animation: fadeIn 0.1s;
         }
+        
+        /* Target generic menu items (buttons) */
         .menu-item {
+            display: flex;
             width: 100%;
-            text-align: left;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            font-size: 13px;
+            color: #ccc;
+            text-decoration: none;
             background: transparent;
             border: none;
-            color: #ccc;
-            padding: 8px 12px;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
             cursor: pointer;
             border-radius: 4px;
+            text-align: left;
+            white-space: nowrap;
         }
+        /* Explicitly target Link components (anchor tags) to override inline display using global to bypass scope issues */
+        :global(.action-menu a) {
+            display: flex !important;
+            width: 100%;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            font-size: 13px;
+            color: #ccc;
+            text-decoration: none;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            text-align: left;
+            white-space: nowrap;
+            box-sizing: border-box;
+        }
+        :global(.action-menu a:hover) {
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+        }
+        
         .menu-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
         .menu-item.danger { color: #f87171; }
         .menu-item.danger:hover { background: rgba(248,113,113,0.1); }
@@ -455,7 +511,15 @@ export default function PromotionsList() {
             .search-group { width: 100%; }
             .filter-group { flex-wrap: wrap; }
             .tabs { width: 100%; overflow-x: auto; }
-            .grid-container { overflow-x: auto; }
+            .grid-container { overflow-x: visible; } /* Ensure grid-container doesn't force scroll on desktop */
+        }
+        /* Only scroll on small screens to prevent clipping dropdowns on desktop */
+        .table-responsive { width: 100%; }
+        
+        @media (max-width: 1024px) {
+            .table-responsive { overflow-x: auto; padding-bottom: 20px; } /* padding for potential scrollbar */
+        }
+        @media (max-width: 768px) {
             .data-table { min-width: 800px; } /* Force scroll */
         }
       `}</style>

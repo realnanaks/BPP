@@ -134,6 +134,7 @@ interface WizardContextType {
     updateSchedule: (data: Partial<WizardState['schedule']>) => void;
     updateDisplay: (data: Partial<WizardState['display']>) => void;
     resetWizard: () => void;
+    loadPromotion: (promotion: WizardState) => void;
 }
 
 const WizardContext = createContext<WizardContextType | undefined>(undefined);
@@ -163,8 +164,10 @@ export function WizardProvider({ children }: { children: ReactNode }) {
 
     const resetWizard = () => setState(defaultState);
 
+    const loadPromotion = (promotion: WizardState) => setState(promotion);
+
     return (
-        <WizardContext.Provider value={{ state, updateBasics, updateEligibility, updateRewards, updateSchedule, updateDisplay, resetWizard }}>
+        <WizardContext.Provider value={{ state, updateBasics, updateEligibility, updateRewards, updateSchedule, updateDisplay, resetWizard, loadPromotion }}>
             {children}
         </WizardContext.Provider>
     );

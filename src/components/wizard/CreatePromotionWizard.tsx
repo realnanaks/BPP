@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useWizardContext } from '@/context/WizardContext';
 import WizardStepper from '@/components/wizard/WizardStepper';
 import Step1Basics from '@/components/wizard/steps/Step1Basics';
@@ -13,8 +13,11 @@ import { Save, Rocket, ChevronRight, ChevronLeft, Code, Sun, Moon, X } from 'luc
 export default function CreatePromotionWizard() {
     const [currentStep, setCurrentStep] = useState(1);
     const [theme, setTheme] = useState('dark');
-    const { state, updateEligibility } = useWizardContext();
+    const { state, updateEligibility, loadPromotion, resetWizard } = useWizardContext();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const editId = searchParams.get('edit');
+
     const [isSegmentModalOpen, setIsSegmentModalOpen] = useState(false);
     const [newSegmentName, setNewSegmentName] = useState('');
 
@@ -38,10 +41,29 @@ export default function CreatePromotionWizard() {
         }
     };
 
+    // Load data if editing
+    useEffect(() => {
+        if (editId) {
+            const saved = JSON.parse(localStorage.getItem('saved_promotions') || '[]');
+            const promo = saved.find((p: any) => String(p.id) === String(editId));
+            if (promo && promo.wizardState) {
+                loadPromotion(promo.wizardState);
+            } else if (promo) {
+                // Fallback for seeds/legacy
+                loadPromotion({
+                    ...state, // defaults
+                    basics: { ...state.basics, name: promo.name, type: promo.type || 'cashback' }
+                });
+            }
+        } else {
+            resetWizard();
+        }
+    }, [editId]);
+
     const handlePublish = async () => {
         // Prepare payload from context state
         const newPromo = {
-            id: Date.now(),
+            id: editId || Date.now(), // Keep ID if editing (string or number)
             name: state.basics.name || 'Untitled Promotion',
             type: state.basics.type,
             market: state.eligibility.markets[0]?.toUpperCase() || 'KE',
@@ -54,7 +76,8 @@ export default function CreatePromotionWizard() {
             reward: `${state.rewards.type} - ${state.rewards.calcType}`,
             // New fields being sent to backend
             bannerImage: state.display.bannerImage,
-            termsAndConditions: state.display.termsAndConditions
+            termsAndConditions: state.display.termsAndConditions,
+            wizardState: state // Save full state for re-editing
         };
 
         try {
@@ -67,13 +90,18 @@ export default function CreatePromotionWizard() {
 
             if (!response.ok) {
                 console.error('Failed to create promotion via API');
-            } else {
-                console.log('API Success:', await response.json());
             }
 
             // Save to local storage for the prototype dashboard
             const existing = JSON.parse(localStorage.getItem('saved_promotions') || '[]');
-            const updated = [newPromo, ...existing];
+
+            let updated;
+            if (editId) {
+                updated = existing.map((p: any) => String(p.id) === String(editId) ? newPromo : p);
+            } else {
+                updated = [newPromo, ...existing];
+            }
+
             localStorage.setItem('saved_promotions', JSON.stringify(updated));
 
             // Navigate to dashboard
@@ -103,12 +131,14 @@ export default function CreatePromotionWizard() {
         console.log(`Segment "${newSegmentName}" saved successfully.`);
     };
 
+
+
     return (
         <div className="wizard-page">
             <div className="wizard-header">
                 <div>
-                    <h1 className="page-title">Create New Promotion</h1>
-                    <p className="page-subtitle">Configure rules, rewards, and eligibility criteria.</p>
+                    <h1 className="page-title">{editId ? 'Edit Promotion' : 'Create New Promotion'}</h1>
+                    <p className="page-subtitle">{editId ? 'Update promotion details and configuration.' : 'Configure rules, rewards, and eligibility criteria.'}</p>
                 </div>
                 <div className="header-meta">
                     <button
@@ -118,7 +148,6 @@ export default function CreatePromotionWizard() {
                     >
                         {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
                     </button>
-                    <span className="draft-badge"><div className="dot" /> Draft Mode</span>
                 </div>
             </div>
 
@@ -211,7 +240,7 @@ export default function CreatePromotionWizard() {
                         </button>
                     ) : (
                         <button className="btn btn-primary glow-effect" onClick={handlePublish}>
-                            <Rocket size={16} /> Publish Promotion
+                            <Rocket size={16} /> {editId ? 'Save Changes' : 'Publish Promotion'}
                         </button>
                     )}
                 </div>

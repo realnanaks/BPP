@@ -57,7 +57,9 @@ export default function PromotionDetailsPage() {
                         </div>
                         <p className="page-subtitle">ID: {promo.id} • {promo.type} • {promo.market || 'All Markets'}</p>
                     </div>
-                    <button className="btn btn-primary"><Edit size={16} /> Edit Configuration</button>
+                    <Link href={`/promotions/create?edit=${promo.id}`} className="btn-primary-link">
+                        <Edit size={16} /> Edit Configuration
+                    </Link>
                 </div>
             </div>
 
@@ -158,6 +160,29 @@ export default function PromotionDetailsPage() {
                 .header-content { display: flex; justify-content: space-between; align-items: flex-start; }
                 .page-title { font-size: 28px; font-weight: 700; margin: 0; color: #fff; }
                 .page-subtitle { font-size: 14px; color: #888; margin-top: 4px; font-family: monospace; }
+                
+                /* Use global to ensure class applies to the Link/Anchor tag */
+                :global(.btn-primary-link) {
+                    background: var(--color-betika-yellow);
+                    color: #000 !important; /* Force black text */
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    font-weight: 700;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    text-decoration: none;
+                    transition: all 0.2s;
+                    border: none;
+                    cursor: pointer;
+                    line-height: 1; /* Fix vertical alignment */
+                }
+                :global(.btn-primary-link:hover) {
+                    background: #fff;
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(242, 214, 65, 0.3);
+                }
 
                 .status-badge { font-size: 11px; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; font-weight: 700; border: 1px solid currentColor; }
                 .status-badge.active { color: var(--color-betika-green); background: rgba(105, 153, 81, 0.2); }
@@ -197,7 +222,14 @@ export default function PromotionDetailsPage() {
                 .banner-preview { margin-bottom: 24px; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
                 .banner-preview img { width: 100%; height: auto; display: block; }
                 
-                .tnc-box { background: rgba(255,255,255,0.03); padding: 16px; border-radius: 8px; border: left: 2px solid var(--color-betika-yellow); }
+                /* Responsive Grid */
+                @media (max-width: 768px) {
+                    .details-grid { display: flex; flex-direction: column; }
+                    .header-content { flex-direction: column; gap: 16px; }
+                    .btn { width: 100%; justify-content: center; }
+                }
+
+                .tnc-box { background: rgba(255,255,255,0.03); padding: 16px; border-radius: 8px; border-left: 2px solid var(--color-betika-yellow); }
                 .tnc-box h5 { margin: 0 0 8px 0; font-size: 13px; color: #ccc; font-weight: 600; text-transform: uppercase; }
                 .tnc-box p { margin: 0; font-size: 13px; color: #888; line-height: 1.5; white-space: pre-wrap; }
             `}</style>

@@ -71,13 +71,7 @@ export default function StepBasics() {
                     </div>
                 </div>
 
-                <div className="input-group">
-                    <label>Tags</label>
-                    <div className="input-wrapper">
-                        <Tag size={18} className="icon" />
-                        <input type="text" placeholder="Add tags..." className="form-input" />
-                    </div>
-                </div>
+
             </div>
 
             <style jsx>{`

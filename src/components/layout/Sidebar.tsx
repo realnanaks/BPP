@@ -90,7 +90,7 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           {/* For brevity, I will assume the user wants me to retain the full list. I will use the ... pattern in the replacement content if possible, but replace needs exact content. */}
           {/* I'll just replace the wrapper and header, and style block. */}
 
-          <p className="nav-title mt-6">PREDICTIONS</p>
+          <p className="nav-title mt-6">AI PREDICTIONS</p>
           <div className="nav-list">
             <Link href="/predictions/churn" className="nav-item" onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', textDecoration: 'none', marginBottom: '4px', transition: 'all 0.2s ease', backgroundColor: isItemActive('/predictions/churn') ? '#F2D641' : 'transparent', color: isItemActive('/predictions/churn') ? '#000' : '#a1a1aa', fontWeight: isItemActive('/predictions/churn') ? 700 : 500 }}>
               <Users size={20} /> <span className="item-label" style={{ flex: 1 }}>Churn</span>
