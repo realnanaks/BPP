@@ -16,6 +16,14 @@ interface SimulationResult {
     cost: number;
     ggr: number;
     roi: number;
+    recommendations: Recommendation[];
+}
+
+interface Recommendation {
+    type: string;
+    description: string;
+    predictedUplift: number;
+    reason: string;
 }
 
 // --- Mock Simulation Logic ---
@@ -27,11 +35,28 @@ const PREDICT_LOGIC = (bonusAmount: number, targetSize: number): SimulationResul
     const cost = participation * bonusAmount;
     const ggr = participation * (bonusAmount * 1.8 + 10); // Simulated LTV
 
+    // Generate dynamic recommendations
+    const recommendations: Recommendation[] = [
+        {
+            type: 'Alternative Offer',
+            description: `Bet & Get €${Math.max(5, Math.floor(bonusAmount / 2))}`,
+            predictedUplift: 12.5,
+            reason: 'Lower cost per acquisition with similar engagement.'
+        },
+        {
+            type: 'Upsell Strategy',
+            description: 'Add "Min Odds 2.0" Requirement',
+            predictedUplift: 8.2,
+            reason: 'Increases average GGR by filtering low-value bets.'
+        }
+    ];
+
     return {
         participation,
         cost,
         ggr,
-        roi: ((ggr - cost) / cost) * 100
+        roi: ((ggr - cost) / cost) * 100,
+        recommendations
     };
 };
 
@@ -76,7 +101,7 @@ export default function PromotionPredictionPage() {
             <div className="page-header">
                 <div>
                     <h1 className="page-title">Promotion Forecaster</h1>
-                    <p className="page-subtitle">Simulate campaign outcomes before launching.</p>
+                    <p className="page-subtitle">Simulate outcomes & get AI-driven offer recommendations.</p>
                 </div>
             </div>
 
@@ -152,7 +177,7 @@ export default function PromotionPredictionPage() {
                     </button>
                 </div>
 
-                {/* 2. Results Panel */}
+                {/* 2. Results Column */}
                 <div className="results-column">
                     {result ? (
                         <>
@@ -184,7 +209,7 @@ export default function PromotionPredictionPage() {
                             <div className="glass-panel chart-view">
                                 <h3>Predicted Revenue Trajectory</h3>
                                 <div className="chart-container">
-                                    <ResponsiveContainer width="100%" height={250}>
+                                    <ResponsiveContainer width="100%" height={200}>
                                         <AreaChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                             <defs>
                                                 <linearGradient id="colorGGR" x1="0" y1="0" x2="0" y2="1">
@@ -201,12 +226,30 @@ export default function PromotionPredictionPage() {
                                     </ResponsiveContainer>
                                 </div>
                             </div>
+
+                            {/* AI Recommendations */}
+                            <div className="recommendations-section">
+                                <h3 className="section-title"><PlayCircle size={16} /> Best Next Actions</h3>
+                                <div className="rec-grid">
+                                    {result.recommendations.map((rec, i) => (
+                                        <div key={i} className="glass-panel rec-card">
+                                            <div className="rec-header">
+                                                <span className="rec-type">{rec.type}</span>
+                                                <span className="rec-uplift">+{rec.predictedUplift}% Uplift</span>
+                                            </div>
+                                            <div className="rec-desc">{rec.description}</div>
+                                            <div className="rec-reason">{rec.reason}</div>
+                                            <button className="btn-apply">Apply Strategy</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </>
                     ) : (
                         <div className="empty-state glass-panel">
                             <TrendingUp size={48} className="text-muted" />
                             <h3>Ready to Forecast</h3>
-                            <p>Adjust parameters and click "Run Prediction" to see AI-generated estimates.</p>
+                            <p>Adjust parameters and click "Run Prediction" to see AI-generated estimates and offer recommendations.</p>
                         </div>
                     )}
                 </div>
@@ -297,6 +340,27 @@ export default function PromotionPredictionPage() {
                 }
                 .empty-state h3 { color: #fff; margin: 16px 0 8px 0; }
                 .text-muted { opacity: 0.3; }
+
+                /* Recommendations */
+                .recommendations-section { margin-top: 16px; }
+                .section-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; text-transform: uppercase; color: var(--color-betika-yellow); }
+                
+                .rec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+                .rec-card { padding: 16px; border-left: 3px solid var(--color-betika-yellow); }
+                
+                .rec-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+                .rec-type { font-size: 10px; text-transform: uppercase; color: var(--color-text-secondary); letter-spacing: 0.5px; }
+                .rec-uplift { font-size: 11px; font-weight: 700; color: #4ade80; background: rgba(74, 222, 128, 0.1); padding: 2px 6px; border-radius: 4px; }
+                
+                .rec-desc { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+                .rec-reason { font-size: 12px; color: var(--color-text-secondary); line-height: 1.4; margin-bottom: 12px; }
+                
+                .btn-apply {
+                    width: 100%; border: 1px solid rgba(255,255,255,0.1); background: transparent;
+                    color: #fff; font-size: 12px; padding: 8px; border-radius: 6px; cursor: pointer;
+                    transition: all 0.2s;
+                }
+                .btn-apply:hover { background: rgba(255,255,255,0.05); border-color: #fff; }
             `}</style>
         </div>
     );

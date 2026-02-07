@@ -1,15 +1,16 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Megaphone, ShieldCheck, Beaker, BarChart3, Settings, LogOut, ChevronRight, Layers, Users, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, Megaphone, ShieldCheck, Beaker, BarChart3, Settings, LogOut, ChevronRight, Layers, Users, TrendingUp, Gift, LayoutGrid, FlaskConical } from 'lucide-react';
 import clsx from 'clsx';
 
 const menuItems = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Promotions', href: '/promotions', icon: Megaphone },
-  { name: 'Governance', href: '/governance', icon: ShieldCheck },
-  { name: 'Experiments', href: '/experiments', icon: Beaker },
-  { name: 'Reports', href: '/reports', icon: BarChart3 },
+  { name: 'Dashboard', path: '/', icon: LayoutGrid },
+  { name: 'Promotions', path: '/promotions', icon: Megaphone },
+  { name: 'Manual Award', path: '/manual-award', icon: Gift },
+  { name: 'Governance', path: '/governance', icon: ShieldCheck },
+  { name: 'Experiments', path: '/experiments', icon: FlaskConical },
+  { name: 'Reports', path: '/reports', icon: BarChart3 },
 ];
 
 export default function Sidebar() {
@@ -37,11 +38,11 @@ export default function Sidebar() {
         <p className="nav-title">MAIN MENU</p>
         <div className="nav-list">
           {menuItems.map((item) => {
-            const isActive = isItemActive(item.href);
+            const isActive = isItemActive(item.path);
             return (
               <Link
-                key={item.href}
-                href={item.href}
+                key={item.path}
+                href={item.path}
                 className="nav-item"
                 style={{
                   display: 'flex',
