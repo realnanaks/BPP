@@ -2,28 +2,28 @@
 import { Bell, Search } from 'lucide-react';
 
 export default function Header() {
-    return (
-        <header className="header">
-            <div className="search-bar">
-                <Search size={18} className="search-icon" />
-                <input type="text" placeholder="Search promotions by name, ID, or tag..." />
-            </div>
+  return (
+    <header className="header">
+      <div className="search-bar">
+        <Search size={18} className="search-icon" />
+        <input type="text" placeholder="Search promotions by name, ID, or tag..." />
+      </div>
 
-            <div className="actions">
-                <button className="icon-btn" aria-label="Notifications">
-                    <Bell size={20} />
-                    <span className="badge" />
-                </button>
-                <div className="profile">
-                    <div className="avatar">A</div>
-                    <div className="info">
-                        <span className="name">Admin User</span>
-                        <span className="role">CRM Manager</span>
-                    </div>
-                </div>
-            </div>
+      <div className="actions">
+        <button className="icon-btn" aria-label="Notifications">
+          <Bell size={20} />
+          <span className="badge" />
+        </button>
+        <div className="profile">
+          <div className="avatar">A</div>
+          <div className="info">
+            <span className="name">Admin User</span>
+            <span className="role">CRM Manager</span>
+          </div>
+        </div>
+      </div>
 
-            <style jsx>{`
+      <style jsx>{`
         .header {
           height: var(--header-height);
           background: rgba(15, 15, 15, 0.8);
@@ -39,29 +39,30 @@ export default function Header() {
         }
 
         .search-bar {
-          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 10px;
           width: 400px;
+          background: var(--color-bg-panel);
+          border: 1px solid var(--color-border);
+          padding: 0 12px;
+          border-radius: 8px;
+          transition: border-color 0.2s;
+        }
+        .search-bar:focus-within {
+          border-color: var(--color-betika-yellow);
         }
         .search-icon {
-          position: absolute;
-          left: 12px;
-          top: 50%;
-          transform: translateY(-50%);
           color: var(--color-text-secondary);
         }
         input {
-          width: 100%;
-          background: var(--color-bg-panel);
-          border: 1px solid var(--color-border);
-          padding: 10px 10px 10px 40px;
-          border-radius: 8px;
+          flex: 1;
+          background: transparent;
+          border: none;
+          padding: 10px 0;
           color: #fff;
           font-size: 14px;
           outline: none;
-          transition: border-color 0.2s;
-        }
-        input:focus {
-          border-color: var(--color-betika-yellow);
         }
 
         .actions {
@@ -122,6 +123,6 @@ export default function Header() {
         .name { font-size: 13px; font-weight: 600; }
         .role { font-size: 11px; color: var(--color-text-secondary); }
       `}</style>
-        </header>
-    );
+    </header>
+  );
 }
