@@ -69,6 +69,8 @@ export interface WizardState {
         activeTab: string; // 'display' | 'communication'
         title: string;
         teaser: string;
+        bannerImage: string;
+        termsAndConditions: string;
         badges: string[]; // ['NEW', 'HOT']
         communication: {
             smsEnabled: boolean;
@@ -80,7 +82,7 @@ export interface WizardState {
 
 const defaultState: WizardState = {
     basics: {
-        name: 'Cashia Launch Cashback',
+        name: '',
         description: '',
         type: 'cashback'
     },
@@ -96,11 +98,7 @@ const defaultState: WizardState = {
         calcType: 'tiered',
         matrixDimension: 'week',
         tiers: [
-            { id: 1, dimensionKey: 'week', dimensionValue: 'Week 1', segment: 'Low Value (50-200)', percentage: '30', cap: '60' },
-            { id: 2, dimensionKey: 'week', dimensionValue: 'Week 1', segment: 'Lower Mid', percentage: '30', cap: '100' },
-            { id: 3, dimensionKey: 'week', dimensionValue: 'Week 1', segment: 'Higher Mid', percentage: '30', cap: '200' },
-            { id: 4, dimensionKey: 'week', dimensionValue: 'Week 1', segment: 'High Value', percentage: '30', cap: '400' },
-            { id: 5, dimensionKey: 'week', dimensionValue: 'Week 2', segment: 'All Segments', percentage: '20', cap: 'Varies' },
+            { id: 1, dimensionKey: 'week', dimensionValue: 'Week 1', segment: 'All Segments', percentage: '10', cap: '100' },
         ],
         simpleConfig: { percentage: '100', cap: '500' },
         wagering: 35,
@@ -115,13 +113,15 @@ const defaultState: WizardState = {
     },
     display: {
         activeTab: 'display',
-        title: 'Cashia Launch Cashback',
-        teaser: 'Get up to 30% weekly cashback on your deposits with Cashia!',
+        title: '',
+        teaser: '',
+        bannerImage: '',
+        termsAndConditions: '',
         badges: ['NEW'],
         communication: {
             smsEnabled: true,
             pushEnabled: false,
-            smsTemplate: "Congratulations! Kshs {{amount}} cashback credited for {{week}} via Cashia. Check your Wallet. Deposit Kshs 50+ to stay eligible for next week. T&Cs apply."
+            smsTemplate: "Hi {{player_name}}, you have qualified for our promotion! Check your account for details."
         }
     }
 };

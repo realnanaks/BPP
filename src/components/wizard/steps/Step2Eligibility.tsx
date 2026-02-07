@@ -166,7 +166,7 @@ const OPERATORS = [
 ];
 
 export default function StepEligibility() {
-    const { state, updateEligibility, updateContext } = useWizardContext();
+    const { state, updateEligibility } = useWizardContext();
     const [activeTriggerIdForParam, setActiveTriggerIdForParam] = useState<string | null>(null);
 
     // Context Access
@@ -225,7 +225,7 @@ export default function StepEligibility() {
             }
             return t;
         });
-        updateContext({ triggers: updatedTriggers });
+        updateEligibility({ triggers: updatedTriggers });
         setActiveTriggerIdForParam(null);
     };
 

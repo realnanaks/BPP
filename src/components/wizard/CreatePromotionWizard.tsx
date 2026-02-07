@@ -13,7 +13,7 @@ import { Save, Rocket, ChevronRight, ChevronLeft, Code, Sun, Moon, X } from 'luc
 export default function CreatePromotionWizard() {
     const [currentStep, setCurrentStep] = useState(1);
     const [theme, setTheme] = useState('dark');
-    const { state } = useWizardContext();
+    const { state, updateEligibility } = useWizardContext();
     const router = useRouter();
     const [isSegmentModalOpen, setIsSegmentModalOpen] = useState(false);
     const [newSegmentName, setNewSegmentName] = useState('');
@@ -38,7 +38,7 @@ export default function CreatePromotionWizard() {
         }
     };
 
-    const handlePublish = () => {
+    const handlePublish = async () => {
         // Prepare payload from context state
         const newPromo = {
             id: Date.now(),
@@ -49,26 +49,58 @@ export default function CreatePromotionWizard() {
             engagement: '0%',
             segment: state.eligibility.segment,
             stats: { claims: 0, cost: '-', conversion: '-' },
-            period: `${new Date(state.schedule.startDate).toLocaleDateString()} - ${state.schedule.endDate ? new Date(state.schedule.endDate).toLocaleDateString() : 'Ongoing'}`,
+            period: `${new Date(state.schedule.startDate || Date.now()).toLocaleDateString()} - ${state.schedule.endDate ? new Date(state.schedule.endDate).toLocaleDateString() : 'Ongoing'}`,
             rules: `Min ${state.eligibility.triggers.length} Triggers`,
-            reward: `${state.rewards.type} - ${state.rewards.calcType}`
+            reward: `${state.rewards.type} - ${state.rewards.calcType}`,
+            // New fields being sent to backend
+            bannerImage: state.display.bannerImage,
+            termsAndConditions: state.display.termsAndConditions
         };
 
-        // Save to local storage for the prototype dashboard
-        const existing = JSON.parse(localStorage.getItem('saved_promotions') || '[]');
-        const updated = [newPromo, ...existing];
-        localStorage.setItem('saved_promotions', JSON.stringify(updated));
+        try {
+            // Call the Mock Backend API
+            const response = await fetch('/api/promotions/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newPromo)
+            });
 
-        // Navigate to dashboard
-        router.push('/promotions');
+            if (!response.ok) {
+                console.error('Failed to create promotion via API');
+            } else {
+                console.log('API Success:', await response.json());
+            }
+
+            // Save to local storage for the prototype dashboard
+            const existing = JSON.parse(localStorage.getItem('saved_promotions') || '[]');
+            const updated = [newPromo, ...existing];
+            localStorage.setItem('saved_promotions', JSON.stringify(updated));
+
+            // Navigate to dashboard
+            router.push('/promotions');
+
+        } catch (err) {
+            console.error('Publication error:', err);
+            // Replace alert with toast in production
+            console.log('Failed to publish promotion. See console for details.');
+        }
     };
 
     const handleSaveSegment = () => {
         if (!newSegmentName.trim()) return;
+
         const updatedSegments = [...state.eligibility.customSegments, newSegmentName];
-        // data.state.updateEligibility({ customSegments: updatedSegments, segment: newSegmentName });
-        // Since we only have access to updateEligibility via hook context wrapper (not directly exposed here as 'updateEligibility' function unless we deconstruct it)
-        // Wait, line 16 destructures 'state'. I need the update functions.
+        updateEligibility({
+            customSegments: updatedSegments,
+            segment: newSegmentName
+        });
+
+        // Reset and close modal
+        setNewSegmentName('');
+        setIsSegmentModalOpen(false);
+
+        // Optional: show feedback (e.g. toast) - for now just log
+        console.log(`Segment "${newSegmentName}" saved successfully.`);
     };
 
     return (

@@ -1,10 +1,12 @@
 'use client';
-import { Image, Type, Flag, FileText, UploadCloud, Eye, Globe, MessageSquare, Send, Bell } from 'lucide-react';
+import { useState } from 'react';
+import { Image, Type, Flag, FileText, UploadCloud, Eye, Globe, MessageSquare, Send, Bell, Smartphone } from 'lucide-react';
 import { useWizardContext } from '@/context/WizardContext';
 
 export default function StepDisplay() {
     const { state, updateDisplay } = useWizardContext();
-    const { activeTab, title, teaser, badges, communication } = state.display;
+    const { activeTab, title, teaser, badges, communication, bannerImage, termsAndConditions } = state.display;
+    const [previewDevice, setPreviewDevice] = useState<'mobile' | 'web'>('mobile');
 
     // Helpers for updating nested communication object
     const updateComm = (data: Partial<typeof communication>) => {
@@ -16,6 +18,17 @@ export default function StepDisplay() {
             updateDisplay({ badges: badges.filter(b => b !== badge) });
         } else {
             updateDisplay({ badges: [...badges, badge] });
+        }
+    };
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                updateDisplay({ bannerImage: reader.result as string });
+            };
+            reader.readAsDataURL(file);
         }
     };
 
@@ -44,13 +57,20 @@ export default function StepDisplay() {
                             <div className="form-section">
                                 <label className="section-label"><Image size={16} /> Visual Assets</label>
                                 <div className="upload-area">
-                                    <div className="upload-placeholder">
-                                        <UploadCloud size={32} className="text-muted" />
-                                        <span className="upload-text">Drop Hero Image here</span>
-                                        <span className="upload-sub">1920x600 • Max 2MB</span>
-                                    </div>
+                                    <label className="upload-placeholder">
+                                        {bannerImage ? (
+                                            <img src={bannerImage} alt="Banner Preview" className="uploaded-preview" />
+                                        ) : (
+                                            <>
+                                                <UploadCloud size={32} className="text-muted" />
+                                                <span className="upload-text">Drop Hero Image here</span>
+                                                <span className="upload-sub">1920x600 • Max 2MB</span>
+                                            </>
+                                        )}
+                                        <input type="file" accept="image/*" onChange={handleImageUpload} hidden />
+                                    </label>
                                     <div className="preview-mini">
-                                        <div className="mini-box" />
+                                        <div className="mini-box" style={{ backgroundImage: bannerImage ? `url(${bannerImage})` : 'none', backgroundSize: 'cover' }} />
                                         <div className="mini-box" />
                                     </div>
                                 </div>
@@ -79,7 +99,21 @@ export default function StepDisplay() {
                                 </div>
                             </div>
 
-                            {/* 3. Badges */}
+                            {/* 3. T&Cs */}
+                            <div className="form-section">
+                                <label className="section-label"><FileText size={16} /> Terms & Conditions</label>
+                                <div className="input-group">
+                                    <textarea
+                                        className="form-input tnc-input"
+                                        rows={6}
+                                        value={termsAndConditions}
+                                        onChange={(e) => updateDisplay({ termsAndConditions: e.target.value })}
+                                        placeholder="Enter full terms and conditions..."
+                                    ></textarea>
+                                </div>
+                            </div>
+
+                            {/* 4. Badges */}
                             <div className="form-section">
                                 <label className="section-label"><Flag size={16} /> Badges</label>
                                 <div className="badge-selector">
@@ -164,57 +198,120 @@ export default function StepDisplay() {
                     <div className="preview-header">
                         <h3 className="preview-title"><Eye size={16} /> Live Preview</h3>
                         <div className="device-toggles">
-                            <button className="device-btn active">Mobile</button>
+                            <button
+                                className={`device-btn ${previewDevice === 'mobile' ? 'active' : ''}`}
+                                onClick={() => setPreviewDevice('mobile')}
+                            ><Smartphone size={14} /> Mobile</button>
+                            <button
+                                className={`device-btn ${previewDevice === 'web' ? 'active' : ''}`}
+                                onClick={() => setPreviewDevice('web')}
+                            ><Globe size={14} /> Web</button>
                         </div>
                     </div>
 
-                    {/* Phone Mockup */}
-                    <div className="phone-mockup">
-                        <div className="phone-screen">
-                            {/* App Header */}
-                            <div className="app-header">
-                                <div className="menu-burger" />
-                                <div className="logo-placeholder" />
-                            </div>
+                    {/* PREVIEW CONTAINER */}
+                    <div className={`preview-container ${previewDevice}`}>
 
-                            {activeTab === 'display' ? (
-                                <div className="promo-card-preview">
-                                    <div className="card-image-area">
-                                        {badges.length > 0 && <div className="card-badge">{badges[0]}</div>}
+                        {/* MOBILE MOCKUP */}
+                        {previewDevice === 'mobile' && (
+                            <div className="phone-mockup">
+                                <div className="phone-screen">
+                                    {/* App Header */}
+                                    <div className="app-header">
+                                        <div className="menu-burger" />
+                                        <div className="logo-placeholder" />
                                     </div>
-                                    <div className="card-content">
-                                        <h4 className="card-title">{title}</h4>
-                                        <p className="card-desc">{teaser}</p>
-                                        <button className="card-btn">Deposit Now</button>
-                                    </div>
-                                    <div className="card-footer">
-                                        <span className="tnc-link">T&C Apply</span>
+
+                                    {activeTab === 'display' ? (
+                                        <div className="promo-card-preview">
+                                            <div className="card-image-area" style={{ backgroundImage: bannerImage ? `url(${bannerImage})` : 'none', backgroundSize: 'cover' }}>
+                                                {!bannerImage && <div className="img-placeholder">Image Area</div>}
+                                                {badges.length > 0 && <div className="card-badge">{badges[0]}</div>}
+                                            </div>
+                                            <div className="card-content">
+                                                <h4 className="card-title">{title || 'Promotion Title'}</h4>
+                                                <p className="card-desc">{teaser || 'Short description of the promotion goes here...'}</p>
+                                                <button className="card-btn">Opt In</button>
+                                            </div>
+                                            <div className="card-footer">
+                                                <span className="tnc-link" title={termsAndConditions}>T&C Apply</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="notification-preview-list">
+                                            <div className="notif-bubble">
+                                                <div className="notif-header">
+                                                    <span className="app-name">MESSAGES</span>
+                                                    <span className="time">Now</span>
+                                                </div>
+                                                <div className="notif-body">
+                                                    {communication.smsTemplate
+                                                        .replace('{{amount}}', '100')
+                                                        .replace('{{week}}', 'Week 1')
+                                                        .replace('{{player_name}}', 'John')
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="app-content-placeholder">
+                                        <div className="line long" />
+                                        <div className="line short" />
+                                        <div className="line medium" />
                                     </div>
                                 </div>
-                            ) : (
-                                <div className="notification-preview-list">
-                                    <div className="notif-bubble">
-                                        <div className="notif-header">
-                                            <span className="app-name">MESSAGES</span>
-                                            <span className="time">Now</span>
+                            </div>
+                        )}
+
+                        {/* WEB MOCKUP */}
+                        {previewDevice === 'web' && (
+                            <div className="web-mockup">
+                                <div className="browser-bar">
+                                    <div className="dots">
+                                        <span className="dot red" />
+                                        <span className="dot yellow" />
+                                        <span className="dot green" />
+                                    </div>
+                                    <div className="url-bar">betika.com/promotions</div>
+                                </div>
+                                <div className="web-screen">
+                                    <div className="web-header">
+                                        <div className="web-logo" />
+                                        <div className="web-nav">
+                                            <span className="nav-item" />
+                                            <span className="nav-item" />
+                                            <span className="nav-item" />
                                         </div>
-                                        <div className="notif-body">
-                                            {communication.smsTemplate
-                                                .replace('{{amount}}', '100')
-                                                .replace('{{week}}', 'Week 1')
-                                                .replace('{{player_name}}', 'John')
-                                            }
+                                    </div>
+
+                                    <div className="web-promo-banner">
+                                        <div className="web-banner-img" style={{ backgroundImage: bannerImage ? `url(${bannerImage})` : 'none', backgroundSize: 'cover' }}>
+                                            {!bannerImage && <div className="img-placeholder">Hero Image</div>}
+                                            {badges.length > 0 && <div className="web-badge">{badges[0]}</div>}
+                                        </div>
+                                        <div className="web-banner-content">
+                                            <h1>{title || 'Promotion Title'}</h1>
+                                            <p>{teaser || 'Full description of the promotion. Join now and win big!'}</p>
+                                            <div className="web-actions">
+                                                <button className="web-btn primary">Opt In</button>
+                                                <button className="web-btn secondary">More Info</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="web-tnc-section">
+                                        <h3>Terms and Conditions</h3>
+                                        <div className="tnc-text">
+                                            {termsAndConditions.split('\n').map((line, i) => (
+                                                <p key={i}>{line}</p>
+                                            ))}
                                         </div>
                                     </div>
                                 </div>
-                            )}
-
-                            <div className="app-content-placeholder">
-                                <div className="line long" />
-                                <div className="line short" />
-                                <div className="line medium" />
                             </div>
-                        </div>
+                        )}
+
                     </div>
                 </div>
             </div>
@@ -238,8 +335,9 @@ export default function StepDisplay() {
 
                 /* Upload Area */
                 .upload-area { display: flex; gap: 16px; }
-                .upload-placeholder { flex: 1; border: 2px dashed var(--color-border); border-radius: 12px; height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+                .upload-placeholder { flex: 1; border: 2px dashed var(--color-border); border-radius: 12px; height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; overflow: hidden; position: relative; }
                 .upload-placeholder:hover { border-color: var(--color-accent-purple); background: rgba(168, 85, 247, 0.05); }
+                .uploaded-preview { width: 100%; height: 100%; object-fit: cover; }
                 .text-muted { color: var(--color-text-muted); margin-bottom: 8px; }
                 .upload-text { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
                 .upload-sub { font-size: 11px; color: var(--color-text-muted); }
@@ -251,6 +349,7 @@ export default function StepDisplay() {
                 .input-group label { display: block; margin-bottom: 8px; font-size: 12px; color: var(--color-text-muted); }
                 .form-input { width: 100%; background: var(--color-bg-input); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 12px; border-radius: 8px; font-family: inherit; font-size: 14px; }
                 .form-input:focus { border-color: var(--color-accent-cyan); outline: none; }
+                .tnc-input { font-size: 12px; line-height: 1.5; font-family: monospace; }
 
                 /* Badges */
                 .badge-selector { display: flex; gap: 12px; }
@@ -291,9 +390,11 @@ export default function StepDisplay() {
                 /* Preview Panel */
                 .preview-panel { display: flex; flex-direction: column; align-items: center; justify-self: center; width: 100%; }
                 .preview-header { display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 24px; max-width: 320px; }
+                .web .preview-header { max-width: 600px; } /* Expand header for web view */
+
                 .preview-title { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--color-text-secondary); }
                 .device-toggles { display: flex; background: rgba(255,255,255,0.1); border-radius: 6px; padding: 2px; }
-                .device-btn { background: transparent; border: none; font-size: 11px; padding: 4px 12px; color: var(--color-text-muted); cursor: pointer; border-radius: 4px; }
+                .device-btn { display: flex; align-items: center; gap: 6px; background: transparent; border: none; font-size: 11px; padding: 4px 12px; color: var(--color-text-muted); cursor: pointer; border-radius: 4px; }
                 .device-btn.active { background: var(--color-bg-app); color: #fff; }
 
                  .phone-mockup { width: 320px; height: 600px; background: #000; border-radius: 32px; border: 8px solid #1e1e24; position: relative; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
@@ -311,19 +412,52 @@ export default function StepDisplay() {
 
                 .promo-card-preview { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin-bottom: 24px; border: 1px solid #333; }
                 .card-image-area { height: 120px; background: linear-gradient(135deg, #1e3a8a, #000); position: relative; }
+                .img-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.2); font-size: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
+
                 .card-badge { position: absolute; top: 12px; left: 12px; background: var(--color-betika-yellow); color: #000; font-size: 10px; font-weight: 800; padding: 4px 8px; border-radius: 4px; }
                 .card-content { padding: 16px; }
                 .card-title { font-size: 16px; color: #fff; margin: 0 0 4px 0; }
                 .card-desc { font-size: 12px; color: #999; margin: 0 0 16px 0; line-height: 1.4; }
                 .card-btn { width: 100%; background: var(--color-betika-yellow); border: none; padding: 10px; border-radius: 6px; font-weight: 700; color: #000; font-size: 13px; cursor: pointer; }
                 .card-footer { padding: 8px 16px; background: #111; border-top: 1px solid #222; text-align: center; }
-                .tnc-link { font-size: 10px; color: #666; text-decoration: underline; }
+                .tnc-link { font-size: 10px; color: #666; text-decoration: underline; cursor: help; }
 
                 .app-content-placeholder { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
                 .line { height: 8px; background: #222; border-radius: 4px; }
                 .line.long { width: 100%; }
                 .line.medium { width: 70%; }
                 .line.short { width: 40%; }
+
+                /* Web Mockup Styles */
+                .web-mockup { width: 100%; max-width: 800px; height: 500px; background: #1a1a1a; border-radius: 12px; border: 1px solid #333; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+                .browser-bar { height: 36px; background: #2a2a2a; display: flex; align-items: center; padding: 0 16px; gap: 16px; border-bottom: 1px solid #333; }
+                .dots { display: flex; gap: 6px; }
+                .dot { width: 10px; height: 10px; border-radius: 50%; }
+                .dot.red { background: #ef4444; } 
+                .dot.yellow { background: #facc15; } 
+                .dot.green { background: #4ade80; }
+                .url-bar { flex: 1; background: #111; height: 24px; border-radius: 4px; display: flex; align-items: center; padding: 0 12px; font-size: 11px; color: #666; }
+                
+                .web-screen { flex: 1; background: #000; overflow-y: auto; position: relative; }
+                .web-header { height: 60px; border-bottom: 1px solid #222; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; }
+                .web-logo { width: 100px; height: 24px; background: #333; border-radius: 4px; }
+                .web-nav { display: flex; gap: 16px; }
+                .nav-item { width: 60px; height: 12px; background: #222; border-radius: 4px; }
+
+                .web-promo-banner { height: 300px; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+                .web-banner-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; opacity: 0.6; }
+                .web-banner-content { position: relative; z-index: 2; text-align: center; max-width: 600px; padding: 32px; }
+                .web-banner-content h1 { font-size: 32px; margin-bottom: 12px; font-weight: 800; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+                .web-banner-content p { font-size: 16px; margin-bottom: 24px; color: #ccc; }
+                .web-actions { display: flex; gap: 16px; justify-content: center; }
+                .web-btn { padding: 12px 24px; border-radius: 6px; font-weight: 700; cursor: pointer; border: none; }
+                .web-btn.primary { background: var(--color-betika-yellow); color: #000; }
+                .web-btn.secondary { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+                .web-badge { position: absolute; top: 24px; right: 24px; background: var(--color-betika-yellow); color: #000; font-weight: 800; padding: 6px 12px; border-radius: 4px; z-index: 5; }
+
+                .web-tnc-section { padding: 32px; border-top: 1px solid #222; }
+                .web-tnc-section h3 { font-size: 14px; margin-bottom: 16px; color: #888; text-transform: uppercase; }
+                .tnc-text p { font-size: 12px; color: #666; margin-bottom: 8px; line-height: 1.5; }
             `}</style>
         </div>
     );

@@ -129,13 +129,13 @@ export default function PromotionsList() {
                 <table className="data-table">
                     <thead>
                         <tr>
-                            <th width="120">ID</th>
+                            <th style={{ width: '120px' }}>ID</th>
                             <th>Promotion Name</th>
                             <th>Type</th>
                             <th>Status</th>
                             <th>Performance</th>
                             <th>Period</th>
-                            <th width="50"></th>
+                            <th style={{ width: '50px' }}></th>
                         </tr>
                     </thead>
                     <tbody>

@@ -106,8 +106,23 @@ export default function PromotionDetailsPage() {
                             <Gift size={20} className="text-yellow" />
                             <div>
                                 <div className="reward-title">{promo.reward || 'Tiered Cashback'}</div>
-                                <div className="reward-sub">{promo.name.includes('Acca') ? 'Max Cap: 100,000 ETB' : 'Standard Wager x35'}</div>
+                                <div className="reward-sub text-muted">{promo.name.includes('Acca') ? 'Max Cap: 100,000 ETB' : 'Standard Wager x35'}</div>
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="divider" />
+
+                    <div className="summary-section">
+                        <h4>Creative & Legal</h4>
+                        {promo.bannerImage && (
+                            <div className="banner-preview mb-4">
+                                <img src={promo.bannerImage} alt="Promotion Banner" className="w-full rounded-lg" />
+                            </div>
+                        )}
+                        <div className="tnc-box">
+                            <h5>Terms & Conditions</h5>
+                            <p>{promo.termsAndConditions || 'Standard promotional terms apply.'}</p>
                         </div>
                     </div>
 
@@ -175,11 +190,16 @@ export default function PromotionDetailsPage() {
                 .stat-value { font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 4px; }
                 .stat-label { font-size: 12px; color: #666; text-transform: uppercase; }
                 .text-sm { font-size: 16px; }
-                .mb-2 { margin-bottom: 8px; }
-
                 .flex { display: flex; }
                 .items-center { align-items: center; }
                 .gap-3 { gap: 12px; }
+
+                .banner-preview { margin-bottom: 24px; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+                .banner-preview img { width: 100%; height: auto; display: block; }
+                
+                .tnc-box { background: rgba(255,255,255,0.03); padding: 16px; border-radius: 8px; border: left: 2px solid var(--color-betika-yellow); }
+                .tnc-box h5 { margin: 0 0 8px 0; font-size: 13px; color: #ccc; font-weight: 600; text-transform: uppercase; }
+                .tnc-box p { margin: 0; font-size: 13px; color: #888; line-height: 1.5; white-space: pre-wrap; }
             `}</style>
         </div>
     );
