@@ -3,11 +3,12 @@ import { Check } from 'lucide-react';
 
 const steps = [
     { id: 1, label: 'Basics' },
-    { id: 2, label: 'Eligibility' },
-    { id: 3, label: 'Rewards' },
-    { id: 4, label: 'Schedule' },
-    { id: 5, label: 'Display' },
-    { id: 6, label: 'Review' },
+    { id: 2, label: 'Scope' },
+    { id: 3, label: 'Triggers' },
+    { id: 4, label: 'Rewards' },
+    { id: 5, label: 'Schedule' },
+    { id: 6, label: 'Display' },
+    { id: 7, label: 'Review' },
 ];
 
 export default function WizardStepper({ currentStep }: { currentStep: number }) {

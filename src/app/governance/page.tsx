@@ -2,14 +2,15 @@
 
 import { useState } from 'react';
 import {
-    ShieldCheck, CheckCircle2, XCircle, Clock, AlertTriangle,
-    FileText, TrendingUp, Users, DollarSign, Search, Filter,
+    CheckCircle2, XCircle, Clock, AlertTriangle, FileText, Settings,
+    TrendingUp, Users, DollarSign, Search, Filter, Shield, Activity, // Activity added, Shield added
     ChevronRight, MoreHorizontal, Download, History, Lock
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
+import ResponsibleGambling from '@/components/governance/ResponsibleGambling';
 
 // --- Types ---
-type Tab = 'overview' | 'approvals' | 'budgets' | 'audits';
+type Tab = 'overview' | 'approvals' | 'budgets' | 'audits' | 'compliance';
 
 // --- Mock Data ---
 
@@ -89,6 +90,27 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function GovernancePage() {
     const [activeTab, setActiveTab] = useState<Tab>('overview');
+    const [approvals, setApprovals] = useState(APPROVALS_DATA);
+    const [auditLogs, setAuditLogs] = useState(AUDIT_LOGS);
+
+    const handleApprovalAction = (id: string, action: 'approve' | 'reject') => {
+        // Remove from approvals list
+        const item = approvals.find(a => a.id === id);
+        setApprovals(prev => prev.filter(a => a.id !== id));
+
+        // Add to audit logs
+        if (item) {
+            const newLog = {
+                id: Date.now(),
+                user: 'You (Admin)',
+                action: action === 'approve' ? `Approved ${item.name}` : `Rejected ${item.name}`,
+                target: item.id,
+                time: 'Just now',
+                type: action === 'approve' ? 'success' : 'error'
+            };
+            setAuditLogs(prev => [newLog, ...prev]);
+        }
+    };
 
     return (
         <div className="governance-container">
@@ -111,9 +133,10 @@ export default function GovernancePage() {
             {/* Navigation Tabs */}
             <div className="tabs-nav">
                 {[
-                    { id: 'overview', label: 'Overview', icon: ShieldCheck },
+                    { id: 'overview', label: 'Overview', icon: Activity },
                     { id: 'approvals', label: 'Approvals Queue', icon: CheckCircle2, count: 3 },
                     { id: 'budgets', label: 'Budget Controls', icon: DollarSign },
+                    { id: 'compliance', label: 'Compliance', icon: Shield },
                     { id: 'audits', label: 'Audit Logs', icon: History },
                 ].map((tab) => (
                     <button
@@ -149,7 +172,7 @@ export default function GovernancePage() {
                             </div>
                             <div className="glass-panel kpi-card">
                                 <div className="kpi-header">
-                                    <div className="icon-box green"><ShieldCheck size={20} /></div>
+                                    <div className="icon-box green"><Activity size={20} /></div>
                                     <span className="badge success">+2.4%</span>
                                 </div>
                                 <div className="kpi-value">98.5%</div>
@@ -234,46 +257,63 @@ export default function GovernancePage() {
                                 <button className="icon-btn"><Search size={16} /></button>
                             </div>
                         </div>
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Request ID</th>
-                                    <th>Promotion Name</th>
-                                    <th>Requestor</th>
-                                    <th>Market</th>
-                                    <th>Cost Est.</th>
-                                    <th>Urgency</th>
-                                    <th>Status</th>
-                                    <th className="text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {APPROVALS_DATA.map((item) => (
-                                    <tr key={item.id}>
-                                        <td className="font-mono text-muted">{item.id}</td>
-                                        <td className="font-medium text-white">{item.name}</td>
-                                        <td className="text-secondary">{item.requestor}</td>
-                                        <td><span className="tag">{item.market}</span></td>
-                                        <td className="text-white font-mono">{item.amount}</td>
-                                        <td><StatusBadge status={item.urgency} /></td>
-                                        <td><span className="status-text">{item.status}</span></td>
-                                        <td>
-                                            <div className="action-buttons">
-                                                <button className="action-btn approve" title="Approve">
-                                                    <CheckCircle2 size={18} />
-                                                </button>
-                                                <button className="action-btn reject" title="Reject">
-                                                    <XCircle size={18} />
-                                                </button>
-                                                <button className="action-btn view">
-                                                    <ChevronRight size={18} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        {approvals.length === 0 ? (
+                            <div className="empty-state">
+                                <CheckCircle2 size={48} color="#4ade80" style={{ marginBottom: 16, opacity: 0.5 }} />
+                                <p>All caught up! No pending approvals.</p>
+                            </div>
+                        ) : (
+                            <div className="table-responsive">
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Request ID</th>
+                                            <th>Promotion Name</th>
+                                            <th>Requestor</th>
+                                            <th>Market</th>
+                                            <th>Cost Est.</th>
+                                            <th>Urgency</th>
+                                            <th>Status</th>
+                                            <th className="text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {approvals.map((item) => (
+                                            <tr key={item.id}>
+                                                <td className="font-mono text-muted">{item.id}</td>
+                                                <td className="font-medium text-white">{item.name}</td>
+                                                <td className="text-secondary">{item.requestor}</td>
+                                                <td><span className="tag">{item.market}</span></td>
+                                                <td className="text-white font-mono">{item.amount}</td>
+                                                <td><StatusBadge status={item.urgency} /></td>
+                                                <td><span className="status-text">{item.status}</span></td>
+                                                <td>
+                                                    <div className="action-buttons">
+                                                        <button
+                                                            className="action-btn approve"
+                                                            title="Approve"
+                                                            onClick={() => handleApprovalAction(item.id, 'approve')}
+                                                        >
+                                                            <CheckCircle2 size={18} />
+                                                        </button>
+                                                        <button
+                                                            className="action-btn reject"
+                                                            title="Reject"
+                                                            onClick={() => handleApprovalAction(item.id, 'reject')}
+                                                        >
+                                                            <XCircle size={18} />
+                                                        </button>
+                                                        <button className="action-btn view">
+                                                            <ChevronRight size={18} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -313,6 +353,11 @@ export default function GovernancePage() {
                     </div>
                 )}
 
+                {/* --- COMPLIANCE TAB --- */}
+                {activeTab === 'compliance' && (
+                    <ResponsibleGambling />
+                )}
+
                 {/* --- AUDIT LOGS TAB --- */}
                 {activeTab === 'audits' && (
                     <div className="glass-panel table-panel">
@@ -325,7 +370,7 @@ export default function GovernancePage() {
                             </button>
                         </div>
                         <div className="log-list">
-                            {AUDIT_LOGS.map((log) => (
+                            {auditLogs.map((log) => (
                                 <div key={log.id} className="log-item group">
                                     <div className="log-content">
                                         <div className={`status-dot ${log.type}`} />
@@ -535,6 +580,22 @@ export default function GovernancePage() {
         
         .hidden { display: none; }
         .group:hover .hidden { display: block; }
+        
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+        @media (max-width: 1024px) {
+             .kpi-row { grid-template-columns: repeat(2, 1fr); }
+             .charts-row { grid-template-columns: 1fr; }
+             .budgets-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .page-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+            .header-actions { width: 100%; justify-content: flex-start; }
+            .tabs-nav { overflow-x: auto; padding-bottom: 2px; }
+            .tab-btn { white-space: nowrap; }
+            .kpi-row { grid-template-columns: 1fr; }
+        }
       `}</style>
         </div>
     );

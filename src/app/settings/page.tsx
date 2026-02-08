@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import {
     Settings, Users, Shield, Bell, Database, Save, CheckCircle2, Power,
-    CreditCard, Globe, Key, Webhook, Mail, Plus, Trash2, Sun, Moon, Monitor
+    CreditCard, Globe, Key, Webhook, Mail, Plus, Trash2, Sun, Moon, Monitor,
+    Book, FileCode, ExternalLink, HelpCircle, FileText, PlayCircle // Added icons
 } from 'lucide-react';
+import ExplainerVideo from '@/components/onboarding/ExplainerVideo';
 
 // --- Types ---
 interface CountryConfig {
@@ -245,8 +247,10 @@ const DEFAULT_COUNTRIES: CountryConfig[] = [
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState('general');
+    const [docTab, setDocTab] = useState('manual'); // manual | technical
     const [isSaving, setIsSaving] = useState(false);
     const [successMsg, setSuccessMsg] = useState('');
+    const [showVideo, setShowVideo] = useState(false);
 
     // Theme State
     const [theme, setTheme] = useState('dark');
@@ -255,6 +259,11 @@ export default function SettingsPage() {
     const [countries, setCountries] = useState<CountryConfig[]>(DEFAULT_COUNTRIES);
     const [newCountry, setNewCountry] = useState<Partial<CountryConfig>>({ countryLimit: 0, promoLimit: 0 });
     const [isAdding, setIsAdding] = useState(false);
+
+    // Users State
+    const [users, setUsers] = useState(USERS);
+    const [isAddingUser, setIsAddingUser] = useState(false);
+    const [newUser, setNewUser] = useState({ name: '', email: '', role: 'Viewer', password: '' });
 
     // Initial Load
     useEffect(() => {
@@ -270,6 +279,14 @@ export default function SettingsPage() {
                     if (Array.isArray(parsed) && parsed.length > 0) setCountries(parsed);
                 } catch (e) { }
             }
+
+            const savedUsers = localStorage.getItem('settings_users');
+            if (savedUsers) {
+                try {
+                    const parsed = JSON.parse(savedUsers);
+                    if (Array.isArray(parsed) && parsed.length > 0) setUsers(parsed);
+                } catch (e) { }
+            }
         }
     }, []);
 
@@ -277,6 +294,7 @@ export default function SettingsPage() {
         setIsSaving(true);
         // Persist Settings
         localStorage.setItem('settings_countries', JSON.stringify(countries));
+        localStorage.setItem('settings_users', JSON.stringify(users));
         localStorage.setItem('theme', theme);
 
         setTimeout(() => {
@@ -284,6 +302,26 @@ export default function SettingsPage() {
             setSuccessMsg('Settings updated successfully!');
             setTimeout(() => setSuccessMsg(''), 3000);
         }, 800);
+    };
+
+    const handleAddUser = () => {
+        if (newUser.name && newUser.email && newUser.password) {
+            const userToAdd = {
+                id: Date.now(),
+                name: newUser.name,
+                email: newUser.email,
+                role: newUser.role,
+                status: 'Active',
+                password: newUser.password // In a real app, never store plain text!
+            };
+            const updatedUsers = [...users, userToAdd];
+            setUsers(updatedUsers);
+            localStorage.setItem('settings_users', JSON.stringify(updatedUsers));
+            setNewUser({ name: '', email: '', role: 'Viewer', password: '' });
+            setIsAddingUser(false);
+            setSuccessMsg('User added successfully');
+            setTimeout(() => setSuccessMsg(''), 3000);
+        }
     };
 
     const handleThemeChange = (t: string) => {
@@ -379,6 +417,12 @@ export default function SettingsPage() {
                         onClick={() => setActiveTab('notifications')}
                     >
                         <Bell size={18} /> Notifications
+                    </button>
+                    <button
+                        className={`nav-btn ${activeTab === 'documentation' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('documentation')}
+                    >
+                        <Book size={18} /> Documentation
                     </button>
                 </div>
 
@@ -540,8 +584,49 @@ export default function SettingsPage() {
                         <div className="tab-pane">
                             <div className="pane-header">
                                 <h3>User Management</h3>
-                                <button className="btn-secondary">+ Add User</button>
+                                <button className="btn-secondary" onClick={() => setIsAddingUser(!isAddingUser)}>
+                                    <Plus size={14} /> Add User
+                                </button>
                             </div>
+
+                            {isAddingUser && (
+                                <div className="add-country-form glass-card" style={{ marginBottom: 24 }}>
+                                    <h4>Add New User</h4>
+                                    <div className="add-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr' }}>
+                                        <input
+                                            placeholder="Full Name"
+                                            value={newUser.name}
+                                            onChange={e => setNewUser({ ...newUser, name: e.target.value })}
+                                        />
+                                        <input
+                                            placeholder="Email Address"
+                                            value={newUser.email}
+                                            onChange={e => setNewUser({ ...newUser, email: e.target.value })}
+                                        />
+                                        <select
+                                            value={newUser.role}
+                                            onChange={e => setNewUser({ ...newUser, role: e.target.value })}
+                                            className="full-select"
+                                        >
+                                            <option value="Admin">Admin</option>
+                                            <option value="Editor">Editor</option>
+                                            <option value="Viewer">Viewer</option>
+                                            <option value="Analyst">Analyst</option>
+                                        </select>
+                                        <input
+                                            type="password"
+                                            placeholder="Password"
+                                            value={newUser.password}
+                                            onChange={e => setNewUser({ ...newUser, password: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="form-actions">
+                                        <button className="btn-cancel" onClick={() => setIsAddingUser(false)}>Cancel</button>
+                                        <button className="btn-confirm" onClick={handleAddUser} disabled={!newUser.name || !newUser.email || !newUser.password}>Create User</button>
+                                    </div>
+                                </div>
+                            )}
+
                             <table className="users-table">
                                 <thead>
                                     <tr>
@@ -553,7 +638,7 @@ export default function SettingsPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {USERS.map(user => (
+                                    {users.map(user => (
                                         <tr key={user.id}>
                                             <td className="font-medium">{user.name}</td>
                                             <td><span className="role-badge">{user.role}</span></td>
@@ -564,6 +649,21 @@ export default function SettingsPage() {
                                             </td>
                                             <td>
                                                 <button className="icon-btn"><Settings size={14} /></button>
+                                                <button
+                                                    className="icon-btn danger"
+                                                    onClick={() => {
+                                                        if (confirm('Delete user?')) {
+                                                            const updated = users.filter(u => u.id !== user.id);
+                                                            setUsers(updated);
+                                                            localStorage.setItem('settings_users', JSON.stringify(updated));
+                                                            setSuccessMsg('User deleted');
+                                                            setTimeout(() => setSuccessMsg(''), 3000);
+                                                        }
+                                                    }}
+                                                    style={{ marginLeft: 8 }}
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
@@ -615,6 +715,114 @@ export default function SettingsPage() {
                                         <span className="slider round"></span>
                                     </label>
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* --- DOCUMENTATION TAB --- */}
+                    {activeTab === 'documentation' && (
+                        <div className="tab-pane">
+                            <div className="pane-header">
+                                <h3>System Documentation</h3>
+                                <div className="doc-tabs">
+                                    <button
+                                        className="doc-tab-btn"
+                                        onClick={() => setShowVideo(true)}
+                                        style={{ marginRight: 12, color: '#eab308' }}
+                                    >
+                                        <PlayCircle size={14} /> About Platform
+                                    </button>
+                                    <button
+                                        className="doc-tab-btn"
+                                        onClick={() => window.dispatchEvent(new Event('restart-tour'))}
+                                        style={{ marginRight: 12 }}
+                                    >
+                                        <CheckCircle2 size={14} /> Start Tour
+                                    </button>
+                                    <button
+                                        className={`doc-tab-btn ${docTab === 'manual' ? 'active' : ''}`}
+                                        onClick={() => setDocTab('manual')}
+                                    >
+                                        <Book size={14} /> User Manual
+                                    </button>
+                                    <button
+                                        className={`doc-tab-btn ${docTab === 'technical' ? 'active' : ''}`}
+                                        onClick={() => setDocTab('technical')}
+                                    >
+                                        <FileCode size={14} /> Technical Docs
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="doc-content glass-card">
+                                {docTab === 'manual' && (
+                                    <div className="doc-section">
+                                        <h4>Promo Wizard Guide</h4>
+                                        <p>Learn how to create, configure, and launch promotions using the wizard.</p>
+
+                                        <div className="doc-link-list">
+                                            <a href="#" className="doc-link">
+                                                <FileText size={16} />
+                                                <div>
+                                                    <span className="link-title">Getting Started with Campaigns</span>
+                                                    <span className="link-desc">Basic concepts and navigating the dashboard.</span>
+                                                </div>
+                                                <ExternalLink size={14} className="ext-icon" />
+                                            </a>
+                                            <a href="#" className="doc-link">
+                                                <FileText size={16} />
+                                                <div>
+                                                    <span className="link-title">Configuring Eligibility Rules</span>
+                                                    <span className="link-desc">How to set up complex segmentation logic.</span>
+                                                </div>
+                                                <ExternalLink size={14} className="ext-icon" />
+                                            </a>
+                                            <a href="#" className="doc-link">
+                                                <FileText size={16} />
+                                                <div>
+                                                    <span className="link-title">Understanding Budget Limits</span>
+                                                    <span className="link-desc">Setting caps for countries and individual promos.</span>
+                                                </div>
+                                                <ExternalLink size={14} className="ext-icon" />
+                                            </a>
+                                        </div>
+
+                                        <div className="help-box">
+                                            <HelpCircle size={18} />
+                                            <p>Need more help? Contact support at <a href="mailto:support@betika.com">support@betika.com</a></p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {docTab === 'technical' && (
+                                    <div className="doc-section">
+                                        <h4>API & Integration Specs</h4>
+                                        <p>Technical details for integrating third-party services and data feeds.</p>
+
+                                        <div className="code-snippet">
+                                            <div className="snippet-header">POST /api/v1/promotions/validate</div>
+                                            <pre>{`
+{
+  "promo_id": "PRO-2024-001",
+  "player_id": "user_12345",
+  "stake_amount": 50.00,
+  "currency": "KES"
+}
+                                            `}</pre>
+                                        </div>
+
+                                        <div className="doc-link-list">
+                                            <a href="#" className="doc-link">
+                                                <Webhook size={16} />
+                                                <div>
+                                                    <span className="link-title">Webhooks Documentation</span>
+                                                    <span className="link-desc">Events and payload structures for real-time updates.</span>
+                                                </div>
+                                                <ExternalLink size={14} className="ext-icon" />
+                                            </a>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -737,6 +945,31 @@ export default function SettingsPage() {
         .notif-item:last-child { border-bottom: none; }
         .notif-info h4 { margin: 0 0 4px 0; font-size: 14px; }
         .notif-info p { margin: 0; font-size: 12px; color: var(--color-text-secondary); }
+
+        /* Documentation Styles */
+        .doc-tabs { display: flex; gap: 8px; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 8px; }
+        .doc-tab-btn { background: transparent; border: none; color: var(--color-text-secondary); padding: 6px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12px; transition: all 0.2s; }
+        .doc-tab-btn.active { background: rgba(255,255,255,0.1); color: #fff; font-weight: 600; }
+        .doc-tab-btn:hover:not(.active) { color: #fff; }
+
+        .doc-content { padding: 24px; background: rgba(255,255,255,0.02); }
+        .doc-section h4 { margin: 0 0 8px 0; color: #fff; font-size: 16px; }
+        .doc-section p { color: var(--color-text-secondary); font-size: 13px; margin-bottom: 24px; line-height: 1.5; }
+
+        .doc-link-list { display: grid; gap: 12px; margin-bottom: 24px; }
+        .doc-link { display: flex; align-items: start; gap: 12px; padding: 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; text-decoration: none; color: inherit; transition: all 0.2s; }
+        .doc-link:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); transform: translateY(-1px); }
+        .link-title { display: block; font-weight: 600; font-size: 14px; margin-bottom: 2px; color: #fff; }
+        .link-desc { display: block; font-size: 12px; color: var(--color-text-secondary); }
+        .ext-icon { opacity: 0.5; margin-left: auto; }
+
+        .help-box { background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.2); padding: 16px; border-radius: 8px; display: flex; align-items: center; gap: 12px; color: var(--color-accent-cyan); font-size: 13px; }
+        .help-box p { margin: 0; color: inherit; }
+        .help-box a { color: #fff; text-decoration: underline; }
+
+        .code-snippet { background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden; margin-bottom: 24px; font-family: monospace; }
+        .snippet-header { background: rgba(255,255,255,0.05); padding: 8px 16px; font-size: 11px; color: var(--color-text-secondary); border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .code-snippet pre { margin: 0; padding: 16px; font-size: 12px; color: #a5b4fc; overflow-x: auto; }
       `}</style>
         </div>
     );

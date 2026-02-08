@@ -1,7 +1,7 @@
 'use client';
 import { ArrowUpRight, ArrowDownRight, Users, Ticket, Wallet, Activity, MoreHorizontal, Bell, Plus, Filter, Search } from 'lucide-react';
 import Link from 'next/link';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend, PieChart, Pie } from 'recharts';
 import { useState, useEffect } from 'react';
 
 const ACTIVITY_DATA = [
@@ -14,11 +14,50 @@ const ACTIVITY_DATA = [
   { name: 'Sun', claims: 3490, value: 4300 },
 ];
 
+const REVENUE_DATA = [
+  { name: 'Jan', value: 4000 },
+  { name: 'Feb', value: 3000 },
+  { name: 'Mar', value: 5000 },
+  { name: 'Apr', value: 2780 },
+  { name: 'May', value: 1890 },
+  { name: 'Jun', value: 2390 },
+];
+
+const COST_DISTRIBUTION = [
+  { name: 'Bonus', value: 400, color: '#F2D641' },
+  { name: 'Cashback', value: 300, color: '#a855f7' },
+  { name: 'Free Bets', value: 300, color: '#06b6d4' },
+];
+
+const PROFIT_MARGINS = [
+  { name: 'Q1', ggr: 120, cost: 80 },
+  { name: 'Q2', ggr: 150, cost: 90 },
+  { name: 'Q3', ggr: 180, cost: 100 },
+  { name: 'Q4', ggr: 200, cost: 110 },
+];
+
 const CAMPAIGN_PERFORMANCE = [
   { name: 'Welcome', value: 400, color: '#F2D641' },
   { name: 'Retention', value: 300, color: '#a855f7' },
   { name: 'VIP', value: 300, color: '#06b6d4' },
   { name: 'Sports', value: 200, color: '#699951' },
+];
+
+const MARKET_PERFORMANCE = [
+  { name: 'Kenya', value: 85, color: '#F2D641' },   // Yellow
+  { name: 'Ghana', value: 65, color: '#a855f7' },   // Purple
+  { name: 'Zambia', value: 45, color: '#06b6d4' },  // Cyan
+  { name: 'Uganda', value: 30, color: '#22c55e' },  // Green
+  { name: 'Tanzania', value: 25, color: '#ef4444' }, // Red
+];
+
+const SEGMENT_ENGAGEMENT = [
+  { subject: 'New Users', A: 120, fullMark: 150 },
+  { subject: 'VIP', A: 98, fullMark: 150 },
+  { subject: 'Churn Risk', A: 86, fullMark: 150 },
+  { subject: 'Sports', A: 99, fullMark: 150 },
+  { subject: 'Casino', A: 85, fullMark: 150 },
+  { subject: 'Crash Games', A: 65, fullMark: 150 },
 ];
 
 export default function Dashboard() {
@@ -56,10 +95,10 @@ export default function Dashboard() {
         </div>
         <div className="header-actions">
           <div className="date-picker-placeholder">
-            <span>Today: Feb 2, 2026</span>
+            <span>Today: {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
           </div>
           <Link href="/promotions/create" className="btn-primary-header">
-            <Plus size={16} /> New Promotion
+            <Plus size={18} /> New Promotion
           </Link>
         </div>
       </header>
@@ -98,6 +137,148 @@ export default function Dashboard() {
           icon={Activity}
           color="var(--color-betika-green)"
         />
+      </div>
+
+      {/* Financial Charts Row */}
+      <div className="financial-grid">
+        {/* Revenue Trends */}
+        <div className="glass-panel chart-panel-sm">
+          <div className="panel-header">
+            <div>
+              <h3 className="panel-title">Revenue Trends</h3>
+              <p className="panel-subtitle">NGR Performance</p>
+            </div>
+          </div>
+          <div className="chart-wrapper">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={REVENUE_DATA}>
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="name" stroke="#666" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="#666" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: '#09090b', border: '1px solid #333', borderRadius: '8px' }} />
+                <Area type="monotone" dataKey="value" stroke="#22c55e" fillOpacity={1} fill="url(#colorRevenue)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Cost Distribution */}
+        <div className="glass-panel chart-panel-sm">
+          <div className="panel-header">
+            <div>
+              <h3 className="panel-title">Cost Distribution</h3>
+              <p className="panel-subtitle">Promo Spend breakdown</p>
+            </div>
+          </div>
+          <div className="chart-wrapper">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={COST_DISTRIBUTION}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {COST_DISTRIBUTION.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{ backgroundColor: '#09090b', border: '1px solid #333', borderRadius: '8px' }} />
+                <Legend verticalAlign="bottom" height={36} iconSize={8} wrapperStyle={{ fontSize: '11px', color: '#999' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Profit Margins */}
+        <div className="glass-panel chart-panel-sm">
+          <div className="panel-header">
+            <div>
+              <h3 className="panel-title">Profit Margins</h3>
+              <p className="panel-subtitle">GGR vs Costs</p>
+            </div>
+          </div>
+          <div className="chart-wrapper">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={PROFIT_MARGINS}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="name" stroke="#666" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="#666" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: '#09090b', border: '1px solid #333', borderRadius: '8px' }} />
+                <Legend verticalAlign="top" height={36} iconSize={8} wrapperStyle={{ fontSize: '11px', color: '#999' }} />
+                <Bar dataKey="ggr" name="GGR" fill="#22c55e" radius={[4, 4, 0, 0]} barSize={20} />
+                <Bar dataKey="cost" name="Costs" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={20} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Secondary Charts Row */}
+      <div className="secondary-grid">
+        {/* Market Performance */}
+        <div className="glass-panel chart-panel-sm">
+          <div className="panel-header">
+            <div>
+              <h3 className="panel-title">Market Performance</h3>
+              <p className="panel-subtitle">Engagement by region</p>
+            </div>
+          </div>
+          <div className="chart-wrapper">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={MARKET_PERFORMANCE}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="name" stroke="#666" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="#666" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip
+                  cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                  contentStyle={{ backgroundColor: '#09090b', border: '1px solid #333', borderRadius: '8px' }}
+                />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={40}>
+                  {MARKET_PERFORMANCE.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} fillOpacity={0.8} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Segment Activity */}
+        <div className="glass-panel chart-panel-sm">
+          <div className="panel-header">
+            <div>
+              <h3 className="panel-title">Segment Activity</h3>
+              <p className="panel-subtitle">Real-time player participation</p>
+            </div>
+          </div>
+          <div className="chart-wrapper">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={SEGMENT_ENGAGEMENT}>
+                <PolarGrid stroke="rgba(255,255,255,0.1)" />
+                <PolarAngleAxis dataKey="subject" tick={{ fill: '#9ca3af', fontSize: 11 }} />
+                <PolarRadiusAxis angle={30} domain={[0, 150]} tick={false} axisLine={false} />
+                <Radar
+                  name="Engagement"
+                  dataKey="A"
+                  stroke="var(--color-betika-yellow)"
+                  fill="var(--color-betika-yellow)"
+                  fillOpacity={0.4}
+                />
+                <Tooltip contentStyle={{ backgroundColor: '#09090b', border: '1px solid #333', borderRadius: '8px' }} />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
 
       {/* Promotions List Section */}
@@ -247,14 +428,22 @@ export default function Dashboard() {
             margin-bottom: 32px;
         }
         .header-actions { display: flex; gap: 16px; align-items: center; }
-        .btn-primary-header { 
-            background: var(--color-betika-yellow); 
-            color: #000; 
-            padding: 8px 16px; 
-            border-radius: 8px; 
+        :global(.btn-primary-header) {
+            background: transparent !important;
+            color: var(--color-betika-yellow) !important;
+            border: 1px solid var(--color-betika-yellow) !important;
+            padding: 8px 16px;
+            border-radius: 8px;
             font-size: 13px; font-weight: 700;
             display: flex; align-items: center; gap: 8px;
             text-decoration: none;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        :global(.btn-primary-header:hover) {
+            background: var(--color-betika-yellow) !important;
+            color: #000 !important;
+            box-shadow: 0 0 10px rgba(242, 214, 65, 0.3);
         }
 
         .dash-title { font-size: 28px; font-weight: 700; margin: 0; letter-spacing: -0.5px; }
@@ -283,7 +472,24 @@ export default function Dashboard() {
             grid-template-columns: 2fr 1fr;
             gap: 24px;
             min-height: 400px;
+            margin-bottom: 24px;
         }
+
+        .secondary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .financial-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .chart-panel-sm { height: 350px; }
 
         .glass-panel {
             background: rgba(22, 22, 34, 0.6);

@@ -3,12 +3,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useWizardContext } from '@/context/WizardContext';
 import WizardStepper from '@/components/wizard/WizardStepper';
 import Step1Basics from '@/components/wizard/steps/Step1Basics';
-import Step2Eligibility from '@/components/wizard/steps/Step2Eligibility';
+import Step2Scope from '@/components/wizard/steps/Step2Scope';
+import Step3Triggers from '@/components/wizard/steps/Step3Triggers';
 import Step4Rewards from '@/components/wizard/steps/Step4Rewards';
 import Step5Schedule from '@/components/wizard/steps/Step5Schedule';
 import Step6Display from '@/components/wizard/steps/Step6Display';
 import Step7Review from '@/components/wizard/steps/Step7Review';
-import { Save, Rocket, ChevronRight, ChevronLeft, Code, Sun, Moon, X } from 'lucide-react';
+import { Save, Rocket, ChevronRight, ChevronLeft, Code, Sun, Moon, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 export default function CreatePromotionWizard() {
     const [currentStep, setCurrentStep] = useState(1);
@@ -32,11 +33,12 @@ export default function CreatePromotionWizard() {
     const renderStep = () => {
         switch (currentStep) {
             case 1: return <Step1Basics />;
-            case 2: return <Step2Eligibility />;
-            case 3: return <Step4Rewards />;
-            case 4: return <Step5Schedule />;
-            case 5: return <Step6Display />;
-            case 6: return <Step7Review />;
+            case 2: return <Step2Scope />;
+            case 3: return <Step3Triggers />;
+            case 4: return <Step4Rewards />;
+            case 5: return <Step5Schedule />;
+            case 6: return <Step6Display />;
+            case 7: return <Step7Review />;
             default: return <Step1Basics />;
         }
     };
@@ -131,10 +133,48 @@ export default function CreatePromotionWizard() {
         console.log(`Segment "${newSegmentName}" saved successfully.`);
     };
 
+    // --- Validation & Navigation ---
+    const [toast, setToast] = useState<{ show: boolean, message: string, type: 'error' | 'success' } | null>(null);
+
+    useEffect(() => {
+        if (toast) {
+            const timer = setTimeout(() => setToast(null), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [toast]);
+
+    const validateStep = (step: number): boolean => {
+        switch (step) {
+            case 2: // Scope
+                if (state.eligibility.markets.length === 0) {
+                    setToast({ show: true, message: 'Please select at least one target market.', type: 'error' });
+                    return false;
+                }
+                return true;
+            // Add other steps as needed
+            default:
+                return true;
+        }
+    };
+
+    const handleNext = () => {
+        if (validateStep(currentStep)) {
+            setCurrentStep(Math.min(7, currentStep + 1));
+        }
+    };
+
 
 
     return (
         <div className="wizard-page">
+            {/* Toast Notification */}
+            {toast && (
+                <div className={`toast-notification ${toast.type}`}>
+                    {toast.type === 'error' ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
+                    <span>{toast.message}</span>
+                </div>
+            )}
+
             <div className="wizard-header">
                 <div>
                     <h1 className="page-title">{editId ? 'Edit Promotion' : 'Create New Promotion'}</h1>
@@ -210,7 +250,7 @@ export default function CreatePromotionWizard() {
             <div className="wizard-footer">
                 <div className="footer-left">
                     <button className="btn btn-secondary"><Save size={16} /> Save Draft</button>
-                    {currentStep === 2 && <button className="btn btn-secondary text-accent-purple"><Code size={16} /> Compliance Scan</button>}
+                    {currentStep === 3 && <button className="btn btn-secondary text-accent-purple"><Code size={16} /> Compliance Scan</button>}
                 </div>
                 <div className="footer-right">
                     <button
@@ -222,8 +262,8 @@ export default function CreatePromotionWizard() {
                         <ChevronLeft size={16} /> Back
                     </button>
 
-                    {/* NEW: Save Segment Button (Only Step 2) */}
-                    {currentStep === 2 && (
+                    {/* NEW: Save Segment Button (Only Step 3) */}
+                    {currentStep === 3 && (
                         <button
                             className="btn btn-secondary text-betika-yellow"
                             style={{ borderColor: 'var(--color-betika-yellow)', color: 'var(--color-betika-yellow)' }}
@@ -234,8 +274,8 @@ export default function CreatePromotionWizard() {
                         </button>
                     )}
 
-                    {currentStep < 6 ? (
-                        <button className="btn btn-primary" onClick={() => setCurrentStep(Math.min(6, currentStep + 1))}>
+                    {currentStep < 7 ? (
+                        <button className="btn btn-primary" onClick={handleNext}>
                             Next Step <ChevronRight size={16} />
                         </button>
                     ) : (
@@ -320,6 +360,32 @@ export default function CreatePromotionWizard() {
                 .form-control input:focus { border-color: var(--color-accent-cyan); }
                 .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
                 .btn-cancel { background: transparent; border: 1px solid var(--color-border); color: var(--color-text-muted); padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+
+                /* Toast */
+                .toast-notification {
+                    position: fixed;
+                    top: 24px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: #18181b;
+                    color: #fff;
+                    padding: 12px 24px;
+                    border-radius: 50px;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+                    z-index: 1000;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                }
+                .toast-notification.error { border-color: rgba(239, 68, 68, 0.5); color: #fecaca; }
+                .toast-notification.success { border-color: rgba(34, 197, 94, 0.5); color: #bbf7d0; }
+                
+                @keyframes slideDown {
+                    from { transform: translate(-50%, -20px); opacity: 0; }
+                    to { transform: translate(-50%, 0); opacity: 1; }
+                }
             `}</style>
         </div>
     );

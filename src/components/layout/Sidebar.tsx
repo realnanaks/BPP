@@ -5,12 +5,12 @@ import { LayoutDashboard, Megaphone, ShieldCheck, Beaker, BarChart3, Settings, L
 import clsx from 'clsx';
 
 const menuItems = [
-  { name: 'Dashboard', path: '/', icon: LayoutGrid },
-  { name: 'Promotions', path: '/promotions', icon: Megaphone },
-  { name: 'Manual Award', path: '/manual-award', icon: Gift },
-  { name: 'Governance', path: '/governance', icon: ShieldCheck },
-  { name: 'Experiments', path: '/experiments', icon: FlaskConical },
-  { name: 'Reports', path: '/reports', icon: BarChart3 },
+  { name: 'Dashboard', path: '/', icon: LayoutGrid, id: 'nav-dashboard' },
+  { name: 'Promotions', path: '/promotions', icon: Megaphone, id: 'nav-promotions' },
+  { name: 'Manual Award', path: '/manual-award', icon: Gift, id: 'nav-manual-award' },
+  { name: 'Governance', path: '/governance', icon: ShieldCheck, id: 'nav-governance' },
+  { name: 'Experiments', path: '/experiments', icon: FlaskConical, id: 'nav-experiments' },
+  { name: 'Reports', path: '/reports', icon: BarChart3, id: 'nav-reports' },
 ];
 
 interface SidebarProps {
@@ -28,6 +28,13 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
     return false;
   };
 
+  const handleLogout = () => {
+    // Clear all app state
+    localStorage.clear();
+    // Force redirect to login
+    window.location.href = '/login';
+  };
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -39,10 +46,17 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
         {/* Brand */}
         <div className="logo-area">
-          <div className="flex items-center gap-3">
-            <div className="logo-icon">
-              <Layers size={22} color="#000" />
-            </div>
+          <div className="flex items-center justify-start gap-3 w-full">
+            <img
+              src="/assets/logo.png"
+              alt="Betika"
+              style={{
+                height: '36px',
+                width: 'auto',
+                objectFit: 'contain',
+                display: 'block'
+              }}
+            />
             <span className="logo-text">Betika<span className="text-yellow">.</span></span>
           </div>
           {/* Mobile Close Button */}
@@ -54,7 +68,7 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         {/* Navigation */}
         <nav className="nav-container">
           {/* ... existing nav content ... */}
-          <p className="nav-title">MAIN MENU</p>
+          <p className="nav-title" style={{ marginTop: 0 }}>MAIN MENU</p>
           <div className="nav-list">
             {menuItems.map((item) => {
               const isActive = isItemActive(item.path);
@@ -62,6 +76,7 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                 <Link
                   key={item.path}
                   href={item.path}
+                  id={item.id}
                   className="nav-item"
                   onClick={onClose} // Close on nav click
                   style={{
@@ -92,21 +107,15 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
           <p className="nav-title mt-6">AI PREDICTIONS</p>
           <div className="nav-list">
-            <Link href="/predictions/churn" className="nav-item" onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', textDecoration: 'none', marginBottom: '4px', transition: 'all 0.2s ease', backgroundColor: isItemActive('/predictions/churn') ? '#F2D641' : 'transparent', color: isItemActive('/predictions/churn') ? '#000' : '#a1a1aa', fontWeight: isItemActive('/predictions/churn') ? 700 : 500 }}>
+            <Link href="/predictions/churn" id="nav-pred-churn" className="nav-item" onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', textDecoration: 'none', marginBottom: '4px', transition: 'all 0.2s ease', backgroundColor: isItemActive('/predictions/churn') ? '#F2D641' : 'transparent', color: isItemActive('/predictions/churn') ? '#000' : '#a1a1aa', fontWeight: isItemActive('/predictions/churn') ? 700 : 500 }}>
               <Users size={20} /> <span className="item-label" style={{ flex: 1 }}>Churn</span>
             </Link>
-            <Link href="/predictions/promotions" className="nav-item" onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', textDecoration: 'none', marginBottom: '4px', transition: 'all 0.2s ease', backgroundColor: isItemActive('/predictions/promotions') ? '#F2D641' : 'transparent', color: isItemActive('/predictions/promotions') ? '#000' : '#a1a1aa', fontWeight: isItemActive('/predictions/promotions') ? 700 : 500 }}>
+            <Link href="/predictions/promotions" id="nav-pred-promotions" className="nav-item" onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', textDecoration: 'none', marginBottom: '4px', transition: 'all 0.2s ease', backgroundColor: isItemActive('/predictions/promotions') ? '#F2D641' : 'transparent', color: isItemActive('/predictions/promotions') ? '#000' : '#a1a1aa', fontWeight: isItemActive('/predictions/promotions') ? 700 : 500 }}>
               <TrendingUp size={20} /> <span className="item-label" style={{ flex: 1 }}>Promotions</span>
-            </Link>
-            <Link href="/predictions/responsible-gambling" className="nav-item" onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', textDecoration: 'none', marginBottom: '4px', transition: 'all 0.2s ease', backgroundColor: isItemActive('/predictions/responsible-gambling') ? '#F2D641' : 'transparent', color: isItemActive('/predictions/responsible-gambling') ? '#000' : '#a1a1aa', fontWeight: isItemActive('/predictions/responsible-gambling') ? 700 : 500 }}>
-              <Shield size={20} /> <span className="item-label" style={{ flex: 1 }}>Responsible Gambling</span>
             </Link>
           </div>
 
-          <p className="nav-title mt-6">SYSTEM</p>
-          <div className="nav-list">
-            {/* Settings moved to Header */}
-          </div>
+
 
         </nav>
 
@@ -118,7 +127,7 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
               <p className="name">Admin User</p>
               <p className="role">Super Admin</p>
             </div>
-            <button className="logout"><LogOut size={16} /></button>
+            <button className="logout" onClick={handleLogout}><LogOut size={16} /></button>
           </div>
         </div>
 
@@ -165,29 +174,25 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         .logo-area {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 0 12px 32px 12px;
+            justify-content: flex-start;
+            padding: 12px 12px 0px 12px;
+            width: 100%;
+            margin-bottom: 20px;
         }
-        .logo-icon {
-            width: 36px;
-            height: 36px;
-            background: #F2D641;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .logo-text {
-            font-size: 20px;
-            font-weight: 800;
-            color: #fff;
-            letter-spacing: -0.5px;
-        }
-        .text-yellow { color: #F2D641; }
+        
         .flex { display: flex; }
         .items-center { align-items: center; }
+        .justify-start { justify-content: flex-start; }
         .gap-3 { gap: 12px; }
+        .w-full { width: 100%; }
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.5px;
+            line-height: 1;
+        }
+        .text-yellow { color: #F2D641; }
 
         /* Nav */
         .nav-container {
